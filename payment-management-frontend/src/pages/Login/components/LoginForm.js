@@ -1,50 +1,14 @@
-import React, { useState } from 'react';
-import { Form, Input, Button, Card, message, Typography, Divider } from 'antd';
+import React from 'react';
+import { Form, Input, Button, Card, Typography } from 'antd';
 import { UserOutlined, LockOutlined, LoginOutlined } from '@ant-design/icons';
-import { useNavigate, useLocation } from 'react-router-dom';
-import axios from 'axios';
-import { useAuth } from '../contexts/AuthContext';
+import { loginFormStyles } from '../styles';
 
 const { Title, Text } = Typography;
 
-const Login = () => {
-  const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { login } = useAuth();
-
-  const onFinish = async (values) => {
-    setLoading(true);
-    try {
-      const result = await login(values.username, values.password);
-      if (result.success) {
-        const from = location.state?.from?.pathname || '/';
-        message.success('登录成功！');
-        navigate(from, { replace: true });
-      } else {
-        message.error(result.message || '登录失败');
-      }
-    } catch (error) {
-      console.error('登录失败:', error);
-      if (error.response?.data?.message) {
-        message.error(error.response.data.message);
-      } else {
-        message.error('登录失败，请检查网络连接');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
+const LoginForm = ({ onFinish, loading }) => {
   return (
-    <div style={{ 
-      minHeight: '100vh', 
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '20px'
-    }}>
+    <>
+      <style>{loginFormStyles}</style>
       <Card 
         style={{ 
           width: '100%', 
@@ -114,8 +78,8 @@ const Login = () => {
           </Form.Item>
         </Form>
       </Card>
-    </div>
+    </>
   );
 };
 
-export default Login;
+export default LoginForm;
