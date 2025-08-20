@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, Table } from 'antd';
-import dayjs from 'dayjs';
+import dayjs from '../../../utils/dayjs';
 import { dashboardStyles } from '../styles';
 
 const RecentPaymentsTable = ({ loading, dataSource }) => {

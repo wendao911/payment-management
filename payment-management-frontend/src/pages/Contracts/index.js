@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Card, Button, Tag, Space, Modal, message } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
-import dayjs from 'dayjs';
+import dayjs from '../../utils/dayjs';
 import ResizeObserverFix from '../../components/ResizeObserverFix';
 import { apiClient } from '../../utils/api';
 import SearchForm from './SearchForm';

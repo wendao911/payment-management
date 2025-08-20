@@ -13,7 +13,7 @@ import {
   DeleteOutlined,
   FileTextOutlined
 } from '@ant-design/icons';
-import dayjs from 'dayjs';
+import dayjs from '../../utils/dayjs';
 import { apiClient, getBackendURL } from '../../utils/api';
 
 const AttachmentUpload = forwardRef(({

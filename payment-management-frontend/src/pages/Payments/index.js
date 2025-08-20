@@ -11,7 +11,7 @@ import {
   PlusOutlined,
   ExclamationCircleOutlined
 } from '@ant-design/icons';
-import dayjs from 'dayjs';
+import dayjs from '../../utils/dayjs';
 import { apiClient } from '../../utils/api';
 import ResizeObserverFix from '../../components/ResizeObserverFix';
 import SafeTable from '../../components/SafeTable';

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, Form, Row, Col, Input, Select, DatePicker, Button, TreeSelect } from 'antd';
-import dayjs from 'dayjs';
+import dayjs from '../../utils/dayjs';
 import AttachmentUpload from '../../components/common/AttachmentUpload';
 import { apiClient } from '../../utils/api';
 

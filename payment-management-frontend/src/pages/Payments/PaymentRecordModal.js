@@ -11,7 +11,7 @@ import {
   Space,
   Button
 } from 'antd';
-import dayjs from 'dayjs';
+import dayjs from '../../utils/dayjs';
 import AttachmentUpload from '../../components/common/AttachmentUpload';
 
 const { Option } = Select;

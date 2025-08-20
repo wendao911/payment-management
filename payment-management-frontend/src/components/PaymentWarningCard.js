@@ -5,7 +5,7 @@ import {
   ClockCircleOutlined,
   DollarOutlined 
 } from '@ant-design/icons';
-import dayjs from 'dayjs';
+import dayjs from '../utils/dayjs';
 
 const PaymentWarningCard = ({ warning, onViewDetails }) => {
   const getWarningColor = (daysUntilDue) => {

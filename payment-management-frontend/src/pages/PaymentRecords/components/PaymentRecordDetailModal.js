@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Row, Col, Card, Tag, Button, message } from 'antd';
-import dayjs from 'dayjs';
-import AttachmentUpload from '../../components/common/AttachmentUpload';
-import { apiClient } from '../../utils/api';
+import dayjs from '../../../utils/dayjs';
+import AttachmentUpload from '../../../components/common/AttachmentUpload';
+import { apiClient } from '../../../utils/api';
 
 const PaymentRecordDetailModal = ({
   visible,
@@ -204,5 +204,3 @@ const PaymentRecordDetailModal = ({
 };
 
 export default PaymentRecordDetailModal;
-
-

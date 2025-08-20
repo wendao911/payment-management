@@ -1,6 +1,6 @@
 import React from 'react';
 import { Modal, Descriptions, Tag, Space, Button } from 'antd';
-import dayjs from 'dayjs';
+import dayjs from '../../utils/dayjs';
 import AttachmentUpload from '../../components/common/AttachmentUpload';
 
 const ContractDetailModal = ({ visible, onCancel, contract, attachments = [], onEdit, onDelete }) => {

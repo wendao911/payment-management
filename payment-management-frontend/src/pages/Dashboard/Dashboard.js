@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Row, Col, Divider, Typography } from 'antd';
-import dayjs from 'dayjs';
+import dayjs from '../../utils/dayjs';
 import PaymentWarningSummary from '../../components/PaymentWarningSummary';
 import BankAccountsSummary from './components/BankAccountsSummary';
 import PayablesSummary from './components/PayablesSummary';

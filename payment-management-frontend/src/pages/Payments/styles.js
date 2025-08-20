@@ -1,4 +1,4 @@
-import dayjs from 'dayjs';
+import dayjs from '../../utils/dayjs';
 
 // 样式常量
 export const paymentTableStyles = `

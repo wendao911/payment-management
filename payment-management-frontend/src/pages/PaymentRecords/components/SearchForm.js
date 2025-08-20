@@ -75,7 +75,7 @@ const SearchForm = ({
         </Col>
         <Col xs={24} sm={12} md={8}>
           <Form.Item name="paymentDateRange" label="付款日期">
-            <DatePicker.RangePicker placeholder={['开始日期', '结束日期']} style={{ width: '100%' }} />
+            <DatePicker.RangePicker placeholder={["开始日期", "结束日期"]} style={{ width: '100%' }} />
           </Form.Item>
         </Col>
         <Col xs={24} sm={12} md={6}>
@@ -96,5 +96,3 @@ const SearchForm = ({
 };
 
 export default SearchForm;
-
-

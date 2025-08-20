@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import dayjs from 'dayjs';
+import dayjs from '../../../utils/dayjs';
 import { apiClient } from '../../../utils/api';
 
 export const useDashboard = () => {

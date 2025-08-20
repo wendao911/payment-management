@@ -13,7 +13,7 @@ import {
   EditOutlined,
   FileTextOutlined
 } from '@ant-design/icons';
-import dayjs from 'dayjs';
+import dayjs from '../../utils/dayjs';
 import AttachmentUpload from '../../components/common/AttachmentUpload';
 import { apiClient } from '../../utils/api';
 
