@@ -1,3 +1,5 @@
+import dayjs from 'dayjs';
+
 // 样式常量
 export const paymentTableStyles = `
   .payment-records-table .ant-table-thead > tr > th {
@@ -154,7 +156,11 @@ export const getPayableColumns = (currencies, onViewDetail, onEdit, onAddPayment
     dataIndex: 'PaymentDueDate',
     key: 'PaymentDueDate',
     width: 120,
-    render: (value) => value ? new Date(value).toLocaleDateString('zh-CN') : '-',
+    render: (value) => {
+      if (!value) return '-';
+      // 直接使用数据库日期，不做时区处理
+      return dayjs(value).format('YYYY-MM-DD');
+    },
   },
   {
     title: '重要程度',

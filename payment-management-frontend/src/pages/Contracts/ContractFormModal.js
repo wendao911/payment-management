@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Form, Row, Col, Input, Select, DatePicker, Button } from 'antd';
+import { Modal, Form, Row, Col, Input, Select, DatePicker, Button, TreeSelect } from 'antd';
 import dayjs from 'dayjs';
 import AttachmentUpload from '../../components/common/AttachmentUpload';
 import { apiClient } from '../../utils/api';
 
 const { Option } = Select;
 
-const ContractFormModal = ({ visible, onCancel, onSubmit, editingContract, suppliers, contracts }) => {
+const ContractFormModal = ({ visible, onCancel, onSubmit, editingContract, suppliers, contracts, contractTreeData }) => {
   const [form] = Form.useForm();
   const [attachments, setAttachments] = useState([]);
 
@@ -111,11 +111,16 @@ const ContractFormModal = ({ visible, onCancel, onSubmit, editingContract, suppl
           </Col>
           <Col span={12}>
             <Form.Item name="parentContractId" label="父合同">
-              <Select placeholder="请选择父合同" allowClear>
-                {(contracts || []).map((c) => (
-                  <Option key={c.Id} value={c.Id}>{c.ContractNumber} - {c.Title}</Option>
-                ))}
-              </Select>
+              <TreeSelect
+                placeholder="请选择父合同（支持搜索编号/名称）"
+                treeData={contractTreeData}
+                showSearch
+                treeNodeFilterProp="title"
+                filterTreeNode={(inputValue, treeNode) => treeNode.title.toLowerCase().includes(inputValue.toLowerCase())}
+                allowClear
+                dropdownStyle={{ maxHeight: 400, overflow: 'auto', minWidth: 300 }}
+                style={{ width: '100%' }}
+              />
             </Form.Item>
           </Col>
         </Row>

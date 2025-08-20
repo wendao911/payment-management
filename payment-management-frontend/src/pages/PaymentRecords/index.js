@@ -263,7 +263,11 @@ const PaymentRecords = () => {
       title: '付款日期',
       key: 'paymentDate',
       width: 140,
-      render: (_, record) => dayjs(record.PaymentDate || record.paymentDate).format('YYYY-MM-DD'),
+      render: (_, record) => {
+        const date = record.PaymentDate || record.paymentDate;
+        if (!date) return '-';
+        return dayjs(date).utc().format('YYYY-MM-DD');
+      },
     },
     {
       title: '备注',
@@ -323,10 +327,11 @@ const PaymentRecords = () => {
               <Statistic
                 title="本月付款"
                 value={paymentRecords.filter(record => {
-                  const recordDate = new Date(record.PaymentDate || record.paymentDate);
-                  const now = new Date();
-                  return recordDate.getMonth() === now.getMonth() &&
-                    recordDate.getFullYear() === now.getFullYear();
+                  const recordDate = dayjs(record.PaymentDate || record.paymentDate);
+                  const now = dayjs();
+                  return recordDate.isValid() && 
+                         recordDate.month() === now.month() &&
+                         recordDate.year() === now.year();
                 }).length}
                 valueStyle={{ color: '#1890ff' }}
                 precision={0}

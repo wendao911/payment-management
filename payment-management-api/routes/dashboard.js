@@ -281,12 +281,23 @@ router.get('/warnings', authenticateToken, async (req, res) => {
         c.ContractNumber,
         c.Title as ContractTitle,
         s.Name as SupplierName,
-        DATEDIFF(p.PaymentDueDate, NOW()) as daysUntilDue
-      FROM Payments p
+        DATEDIFF(p.PaymentDueDate, NOW()) as daysUntilDue,
+        p.PayableAmount as totalAmount,
+        COALESCE(p.PayableAmount - IFNULL(pr.totalPaid, 0), p.PayableAmount) as payableAmount,
+        IFNULL(pr.totalPaid, 0) as totalPaid
+      FROM payablemanagement p
       LEFT JOIN Contracts c ON p.ContractId = c.Id
       LEFT JOIN Suppliers s ON p.SupplierId = s.Id
+      LEFT JOIN (
+        SELECT 
+          PayableManagementId,
+          SUM(PaymentAmount) as totalPaid
+        FROM paymentrecords
+        GROUP BY PayableManagementId
+      ) pr ON p.Id = pr.PayableManagementId
       WHERE p.PaymentDueDate BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 7 DAY)
-        AND p.Status != 2
+        AND p.Status != 'completed'
+        AND COALESCE(p.PayableAmount - IFNULL(pr.totalPaid, 0), p.PayableAmount) > 0
       ORDER BY p.PaymentDueDate ASC, p.Importance DESC
     `);
 
@@ -307,11 +318,23 @@ router.get('/warnings', authenticateToken, async (req, res) => {
         c.ContractNumber,
         c.Title as ContractTitle,
         s.Name as SupplierName,
-        DATEDIFF(NOW(), p.PaymentDueDate) as daysOverdue
-      FROM Payments p
+        DATEDIFF(NOW(), p.PaymentDueDate) as daysOverdue,
+        p.PayableAmount as totalAmount,
+        COALESCE(p.PayableAmount - IFNULL(pr.totalPaid, 0), p.PayableAmount) as payableAmount,
+        IFNULL(pr.totalPaid, 0) as totalPaid
+      FROM payablemanagement p
       LEFT JOIN Contracts c ON p.ContractId = c.Id
       LEFT JOIN Suppliers s ON p.SupplierId = s.Id
-      WHERE p.PaymentDueDate < NOW() AND p.Status != 2
+      LEFT JOIN (
+        SELECT 
+          PayableManagementId,
+          SUM(PaymentAmount) as totalPaid
+        FROM paymentrecords
+        WHERE PayableManagementId IS NOT NULL
+        GROUP BY PayableManagementId
+      ) pr ON p.Id = pr.PayableManagementId
+      WHERE p.PaymentDueDate < NOW() AND p.Status != 'completed'
+        AND COALESCE(p.PayableAmount - IFNULL(pr.totalPaid, 0), p.PayableAmount) > 0
       ORDER BY p.PaymentDueDate ASC, p.Importance DESC
     `);
 
@@ -331,11 +354,23 @@ router.get('/warnings', authenticateToken, async (req, res) => {
         p.*,
         c.ContractNumber,
         c.Title as ContractTitle,
-        s.Name as SupplierName
-      FROM Payments p
+        s.Name as SupplierName,
+        p.PayableAmount as totalAmount,
+        COALESCE(p.PayableAmount - IFNULL(pr.totalPaid, 0), p.PayableAmount) as payableAmount,
+        IFNULL(pr.totalPaid, 0) as totalPaid
+      FROM payablemanagement p
       LEFT JOIN Contracts c ON p.ContractId = c.Id
       LEFT JOIN Suppliers s ON p.SupplierId = s.Id
-      WHERE p.Importance = 2 AND p.Status != 2
+      LEFT JOIN (
+        SELECT 
+          PayableManagementId,
+          SUM(PaymentAmount) as totalPaid
+        FROM paymentrecords
+        WHERE PayableManagementId IS NOT NULL
+        GROUP BY PayableManagementId
+      ) pr ON p.Id = pr.PayableManagementId
+      WHERE p.Importance = 'important' AND p.Status != 'completed'
+        AND COALESCE(p.PayableAmount - IFNULL(pr.totalPaid, 0), p.PayableAmount) > 0
       ORDER BY p.PaymentDueDate ASC
     `);
 
@@ -381,6 +416,93 @@ router.get('/warnings', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       message: '获取付款预警信息失败'
+    });
+  }
+});
+
+// 获取付款预警统计信息
+router.get('/payment-warnings-summary', authenticateToken, async (req, res) => {
+  try {
+    // 统计7天内到期的付款
+    const upcomingCount = await query(`
+      SELECT COUNT(*) as count
+      FROM payablemanagement p
+      LEFT JOIN (
+        SELECT 
+          PayableManagementId,
+          SUM(PaymentAmount) as totalPaid
+        FROM paymentrecords
+        WHERE PayableManagementId IS NOT NULL
+        GROUP BY PayableManagementId
+      ) pr ON p.Id = pr.PayableManagementId
+      WHERE p.PaymentDueDate BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 7 DAY)
+        AND p.Status != 'completed'
+        AND COALESCE(p.PayableAmount - IFNULL(pr.totalPaid, 0), p.PayableAmount) > 0
+    `);
+
+    // 统计逾期付款
+    const overdueCount = await query(`
+      SELECT COUNT(*) as count
+      FROM payablemanagement p
+      LEFT JOIN (
+        SELECT 
+          PayableManagementId,
+          SUM(PaymentAmount) as totalPaid
+        FROM paymentrecords
+        WHERE PayableManagementId IS NOT NULL
+        GROUP BY PayableManagementId
+      ) pr ON p.Id = pr.PayableManagementId
+      WHERE p.PaymentDueDate < NOW() AND p.Status != 'completed'
+        AND COALESCE(p.PayableAmount - IFNULL(pr.totalPaid, 0), p.PayableAmount) > 0
+    `);
+
+    // 统计重要付款
+    const importantCount = await query(`
+      SELECT COUNT(*) as count
+      FROM payablemanagement p
+      LEFT JOIN (
+        SELECT 
+          PayableManagementId,
+          SUM(PaymentAmount) as totalPaid
+        FROM paymentrecords
+        WHERE PayableManagementId IS NOT NULL
+        GROUP BY PayableManagementId
+      ) pr ON p.Id = pr.PayableManagementId
+      WHERE p.Importance = 'important' AND p.Status != 'completed'
+        AND COALESCE(p.PayableAmount - IFNULL(pr.totalPaid, 0), p.PayableAmount) > 0
+    `);
+
+    // 计算总应付金额
+    const totalPayable = await query(`
+      SELECT 
+        SUM(COALESCE(p.PayableAmount - IFNULL(pr.totalPaid, 0), p.PayableAmount)) as totalAmount
+      FROM payablemanagement p
+      LEFT JOIN (
+        SELECT 
+          PayableManagementId,
+          SUM(PaymentAmount) as totalPaid
+        FROM paymentrecords
+        WHERE PayableManagementId IS NOT NULL
+        GROUP BY PayableManagementId
+      ) pr ON p.Id = pr.PayableManagementId
+      WHERE p.Status != 'completed'
+        AND COALESCE(p.PayableAmount - IFNULL(pr.totalPaid, 0), p.PayableAmount) > 0
+    `);
+
+    res.json({
+      success: true,
+      data: {
+        upcoming: upcomingCount[0]?.count || 0,
+        overdue: overdueCount[0]?.count || 0,
+        important: importantCount[0]?.count || 0,
+        totalPayable: totalPayable[0]?.totalAmount || 0
+      }
+    });
+  } catch (error) {
+    console.error('获取付款预警统计信息错误:', error);
+    res.status(500).json({
+      success: false,
+      message: '获取付款预警统计信息失败'
     });
   }
 });

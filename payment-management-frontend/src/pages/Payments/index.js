@@ -20,6 +20,7 @@ import PayableModal from './PayableModal';
 import PaymentRecordModal from './PaymentRecordModal';
 import PayableDetailModal from './PayableDetailModal';
 import PaymentRecordDetailModal from './PaymentRecordDetailModal';
+import PaymentWarningSummary from '../../components/PaymentWarningSummary';
 import { paymentTableStyles, getPayableColumns, getPaymentRecordColumns } from './styles';
 import { convertToUSD, findContractById, validatePayableData, validatePaymentRecordData } from './utils';
 
@@ -61,6 +62,16 @@ const Payments = () => {
     fetchCurrencies();
     fetchSuppliers();
     fetchContracts();
+    
+    // 检查URL参数，应用相应的过滤
+    const urlParams = new URLSearchParams(window.location.search);
+    const filterType = urlParams.get('filter');
+    if (filterType) {
+      // 延迟执行，确保数据已加载
+      setTimeout(() => {
+        handleWarningViewDetails(filterType);
+      }, 1000);
+    }
   }, []);
 
   // 数据处理辅助函数
@@ -568,6 +579,52 @@ const Payments = () => {
     });
   };
 
+  // 处理预警查看详情
+  const handleWarningViewDetails = async (type) => {
+    try {
+      setLoading(true);
+      let apiEndpoint = '';
+      let messageText = '';
+      
+      switch (type) {
+        case 'overdue':
+          apiEndpoint = '/payment/overdue/list';
+          messageText = '已过滤显示逾期付款';
+          break;
+        case 'upcoming':
+          apiEndpoint = '/payment/upcoming/list';
+          messageText = '已过滤显示7天内到期的付款';
+          break;
+        case 'important':
+          apiEndpoint = '/payment/important/list';
+          messageText = '已过滤显示重要付款';
+          break;
+        case 'all':
+          apiEndpoint = '/payment/warnings/list';
+          messageText = '已过滤显示所有预警付款';
+          break;
+        default:
+          return;
+      }
+      
+      // 调用接口获取过滤后的数据
+      const response = await apiClient.get(apiEndpoint);
+      if (response.success) {
+        const filteredData = response.data || [];
+        const processedData = await processPayablesData(filteredData);
+        setFilteredPayables(processedData);
+        message.success(messageText);
+      } else {
+        message.error(response.message || '获取数据失败');
+      }
+    } catch (error) {
+      console.error('获取预警数据失败:', error);
+      message.error('获取预警数据失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // 表格列配置
   const payableColumns = getPayableColumns(
     currencies,
@@ -590,15 +647,8 @@ const Payments = () => {
         {/* 添加样式 */}
         <style>{paymentTableStyles}</style>
 
-        {warnings.length > 0 && (
-          <Alert
-            message="付款预警"
-            description={`您有 ${warnings.length} 个逾期应付需要关注`}
-            type="warning"
-            showIcon
-            className="mb-4"
-          />
-        )}
+        {/* 付款预警统计 */}
+        <PaymentWarningSummary onViewDetails={handleWarningViewDetails} />
 
         <Card
           title="应付管理"

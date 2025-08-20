@@ -4,6 +4,7 @@ import { } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { apiClient } from '../utils/api';
+import PaymentWarningSummary from '../components/PaymentWarningSummary';
 
 const Dashboard = () => {
   // 移除统计卡片
@@ -153,7 +154,11 @@ const Dashboard = () => {
     <div>
       <h1 className="text-2xl font-bold mb-6">系统概览</h1>
       
-      {/* 统计卡片已移除 */}
+      {/* 付款预警统计 */}
+      <PaymentWarningSummary onViewDetails={(type) => {
+        // 跳转到付款管理页面并应用相应的过滤
+        window.location.href = `/payments?filter=${type}`;
+      }} />
 
       <Divider />
 
@@ -212,7 +217,15 @@ const Dashboard = () => {
                 { title: '应付(USD)', dataIndex: 'payableAmountUsd', render: v => `$${Number(v || 0).toLocaleString()}` },
                 { title: '已付(USD)', dataIndex: 'totalPaidAmountUsd', render: v => `$${Number(v || 0).toLocaleString()}` },
                 { title: '剩余(USD)', dataIndex: 'remainingAmountUsd', render: v => `$${Number(v || 0).toLocaleString()}` },
-                { title: '到期日', dataIndex: 'paymentDueDate' },
+                { 
+                  title: '到期日', 
+                  dataIndex: 'paymentDueDate',
+                  render: (value) => {
+                    if (!value) return '-';
+                    // 直接使用数据库日期，不做时区处理
+                    return dayjs(value).format('YYYY-MM-DD');
+                  }
+                },
               ]}
             />
           </Card>
@@ -231,7 +244,15 @@ const Dashboard = () => {
                 { title: '应付(USD)', dataIndex: 'payableAmountUsd', render: v => `$${Number(v || 0).toLocaleString()}` },
                 { title: '已付(USD)', dataIndex: 'totalPaidAmountUsd', render: v => `$${Number(v || 0).toLocaleString()}` },
                 { title: '剩余(USD)', dataIndex: 'remainingAmountUsd', render: v => `$${Number(v || 0).toLocaleString()}` },
-                { title: '到期日', dataIndex: 'paymentDueDate' },
+                { 
+                  title: '到期日', 
+                  dataIndex: 'paymentDueDate',
+                  render: (value) => {
+                    if (!value) return '-';
+                    // 直接使用数据库日期，不做时区处理
+                    return dayjs(value).format('YYYY-MM-DD');
+                  }
+                },
               ]}
             />
           </Card>

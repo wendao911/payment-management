@@ -24,9 +24,9 @@ const ContractDetailModal = ({ visible, onCancel, contract, attachments = [], on
             </Descriptions.Item>
             <Descriptions.Item label="合同标题">{contract.Title}</Descriptions.Item>
             <Descriptions.Item label="供应商">{contract.SupplierName}</Descriptions.Item>
-            <Descriptions.Item label="签订日期">{contract.ContractDate ? dayjs(contract.ContractDate).format('YYYY-MM-DD') : '-'}</Descriptions.Item>
-            <Descriptions.Item label="开始日期">{contract.StartDate ? dayjs(contract.StartDate).format('YYYY-MM-DD') : '-'}</Descriptions.Item>
-            <Descriptions.Item label="结束日期">{contract.EndDate ? dayjs(contract.EndDate).format('YYYY-MM-DD') : '-'}</Descriptions.Item>
+            <Descriptions.Item label="签订日期">{contract.ContractDate ? dayjs(contract.ContractDate).utc().format('YYYY-MM-DD') : '-'}</Descriptions.Item>
+            <Descriptions.Item label="开始日期">{contract.StartDate ? dayjs(contract.StartDate).utc().format('YYYY-MM-DD') : '-'}</Descriptions.Item>
+            <Descriptions.Item label="结束日期">{contract.EndDate ? dayjs(contract.EndDate).utc().format('YYYY-MM-DD') : '-'}</Descriptions.Item>
             <Descriptions.Item label="父合同">{contract.ParentContractId || '-'}</Descriptions.Item>
             <Descriptions.Item label="合同描述" span={2}>{contract.Description || '-'}</Descriptions.Item>
           </Descriptions>

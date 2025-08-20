@@ -16,6 +16,7 @@ const ContractsPage = () => {
   const [filteredContracts, setFilteredContracts] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [contractTreeData, setContractTreeData] = useState([]);
 
   const [formModalVisible, setFormModalVisible] = useState(false);
   const [editingContract, setEditingContract] = useState(null);
@@ -39,6 +40,15 @@ const ContractsPage = () => {
     });
   };
 
+  const convertToTreeSelectFormat = (contracts) => {
+    return contracts.map(contract => ({
+      title: `${contract.ContractNumber} - ${contract.Title || '无标题'}`,
+      value: contract.Id,
+      key: contract.Id,
+      children: contract.children ? convertToTreeSelectFormat(contract.children) : []
+    }));
+  };
+
   const fetchContracts = async () => {
     setLoading(true);
     try {
@@ -47,16 +57,22 @@ const ContractsPage = () => {
         const data = preprocessContractData(response.data || []);
         setContracts(data);
         setFilteredContracts(data);
+        
+        // 转换为树形选择器格式
+        const treeData = convertToTreeSelectFormat(data);
+        setContractTreeData(treeData);
       } else {
         message.error(response.message || '获取合同列表失败');
         setContracts([]);
         setFilteredContracts([]);
+        setContractTreeData([]);
       }
     } catch (e) {
       console.error('Error fetching contracts:', e);
       message.error('获取合同列表失败');
       setContracts([]);
       setFilteredContracts([]);
+      setContractTreeData([]);
     }
     setLoading(false);
   };
@@ -236,7 +252,7 @@ const ContractsPage = () => {
       title: '合同日期',
       dataIndex: 'ContractDate',
       key: 'ContractDate',
-      render: (v) => (v ? dayjs(v).format('YYYY-MM-DD') : '未设置'),
+      render: (v) => (v ? dayjs(v).utc().format('YYYY-MM-DD') : '未设置'),
     },
     {
       title: '状态',
@@ -327,6 +343,7 @@ const ContractsPage = () => {
           editingContract={editingContract}
           suppliers={suppliers}
           contracts={contracts}
+          contractTreeData={contractTreeData}
         />
 
         <ContractDetailModal

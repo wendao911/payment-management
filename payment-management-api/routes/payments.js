@@ -677,4 +677,104 @@ router.get('/overdue/list', authenticateToken, async (req, res) => {
   }
 });
 
+// 获取即将到期的应付（7天内）
+router.get('/upcoming/list', authenticateToken, async (req, res) => {
+  try {
+    const upcomingPayables = await query(`
+      SELECT 
+        pm.*,
+        c.ContractNumber,
+        c.Title as ContractTitle,
+        s.Name as SupplierName,
+        cur.Name as CurrencyName,
+        cur.Symbol as CurrencySymbol
+      FROM PayableManagement pm
+      LEFT JOIN Contracts c ON pm.ContractId = c.Id
+      LEFT JOIN Suppliers s ON pm.SupplierId = s.Id
+      LEFT JOIN Currencies cur ON pm.CurrencyCode = cur.Code
+      WHERE pm.PaymentDueDate BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 7 DAY)
+        AND pm.Status != 'completed'
+      ORDER BY pm.PaymentDueDate ASC, pm.Importance DESC, pm.Urgency DESC
+    `);
+    
+    res.json({
+      success: true,
+      data: upcomingPayables
+    });
+  } catch (error) {
+    console.error('获取即将到期应付错误:', error);
+    res.status(500).json({
+      success: false,
+      message: '获取即将到期应付失败'
+    });
+  }
+});
+
+// 获取重要应付
+router.get('/important/list', authenticateToken, async (req, res) => {
+  try {
+    const importantPayables = await query(`
+      SELECT 
+        pm.*,
+        c.ContractNumber,
+        c.Title as ContractTitle,
+        s.Name as SupplierName,
+        cur.Name as CurrencyName,
+        cur.Symbol as CurrencySymbol
+      FROM PayableManagement pm
+      LEFT JOIN Contracts c ON pm.ContractId = c.Id
+      LEFT JOIN Suppliers s ON pm.SupplierId = s.Id
+      LEFT JOIN Currencies cur ON pm.CurrencyCode = cur.Code
+      WHERE pm.Importance IN ('important', 'very_important') AND pm.Status != 'completed'
+      ORDER BY pm.PaymentDueDate ASC, pm.Importance DESC, pm.Urgency DESC
+    `);
+    
+    res.json({
+      success: true,
+      data: importantPayables
+    });
+  } catch (error) {
+    console.error('获取重要应付错误:', error);
+    res.status(500).json({
+      success: false,
+      message: '获取重要应付失败'
+    });
+  }
+});
+
+// 获取所有预警应付
+router.get('/warnings/list', authenticateToken, async (req, res) => {
+  try {
+    const warningPayables = await query(`
+      SELECT 
+        pm.*,
+        c.ContractNumber,
+        c.Title as ContractTitle,
+        s.Name as SupplierName,
+        cur.Name as CurrencyName,
+        cur.Symbol as CurrencySymbol
+      FROM PayableManagement pm
+      LEFT JOIN Contracts c ON pm.ContractId = c.Id
+      LEFT JOIN Suppliers s ON pm.SupplierId = s.Id
+      LEFT JOIN Currencies cur ON pm.CurrencyCode = cur.Code
+      WHERE (pm.PaymentDueDate < NOW() OR 
+             (pm.PaymentDueDate BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 7 DAY) OR
+              pm.Importance IN ('important', 'very_important')))
+        AND pm.Status != 'completed'
+      ORDER BY pm.PaymentDueDate ASC, pm.Importance DESC, pm.Urgency DESC
+    `);
+    
+    res.json({
+      success: true,
+      data: warningPayables
+    });
+  } catch (error) {
+    console.error('获取预警应付错误:', error);
+    res.status(500).json({
+      success: false,
+      message: '获取预警应付失败'
+    });
+  }
+});
+
 module.exports = router;

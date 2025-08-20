@@ -8,7 +8,8 @@ const config = {
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'payment_management',
   charset: 'utf8mb4',
-  timezone: '+08:00',
+  // 移除时区设置，以数据库原始日期为准
+  // timezone: '+08:00',
   // 连接池配置
   connectionLimit: 10,
   acquireTimeout: 60000,
