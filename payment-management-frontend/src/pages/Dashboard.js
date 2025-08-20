@@ -43,12 +43,15 @@ const Dashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      // 仅获取最近的付款记录
-      const paymentsRes = await apiClient.get('/payment');
-      const recentPaymentsData = (paymentsRes.success ? paymentsRes.data : []).slice(0, 5);
-      setRecentPayments(recentPaymentsData);
+      // 获取最近付款记录（与付款记录列表结构一致）
+      const paymentsRes = await apiClient.get('/payment-records', {
+        params: { page: 1, pageSize: 5 }
+      });
+      const list = paymentsRes.success ? (paymentsRes.data || []) : [];
+      setRecentPayments(list);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
+      setRecentPayments([]);
     } finally {
       setLoading(false);
     }
@@ -109,50 +112,40 @@ const Dashboard = () => {
   }, [bankSummary]);
 
   const columns = [
-    {
-      title: '合同编号',
-      dataIndex: 'contractNumber',
-      key: 'contractNumber',
+    { title: '付款编号', dataIndex: 'PaymentNumber', key: 'PaymentNumber', width: 150,
+      render: (value, record) => value || record.paymentNumber || '-' },
+    { title: '应付编号', dataIndex: 'PayableNumber', key: 'PayableNumber', width: 150,
+      render: (value, record) => value || record.payableNumber || '-' },
+    { title: '应付说明', dataIndex: 'Description', key: 'Description', width: 240,
+      render: (value, record) => value || record.description || '-' },
+    { title: '合同编号', dataIndex: 'ContractNumber', key: 'ContractNumber', width: 220,
+      render: (value, record) => {
+        const number = record.ContractNumber || value || record.contractNumber || '';
+        const title = record.ContractTitle || record.Title || '';
+        if (number && title) return `${number} - ${title}`;
+        return number || title || '-';
+      }
     },
-    {
-      title: '供应商',
-      dataIndex: 'supplierName',
-      key: 'supplierName',
+    { title: '供应商', dataIndex: 'SupplierName', key: 'SupplierName', width: 160,
+      render: (value, record) => value || record.supplierName || '-' },
+    { title: '付款说明', dataIndex: 'PaymentDescription', key: 'PaymentDescription', width: 240,
+      render: (value, record) => value || record.paymentDescription || '-' },
+    { title: '付款金额', dataIndex: 'PaymentAmount', key: 'PaymentAmount', width: 140,
+      render: (value, record) => {
+        const amount = Number(value ?? record.paymentAmount ?? 0);
+        const symbol = record.CurrencySymbol || record.currencySymbol || '';
+        return `${symbol}${amount.toLocaleString()}`;
+      }
     },
-    {
-      title: '应付金额',
-      dataIndex: 'payableAmount',
-      key: 'payableAmount',
-      render: (value) => `¥${value.toLocaleString()}`,
-    },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-      render: (value) => {
-        const statusMap = {
-          0: { text: '待付款', color: 'default' },
-          1: { text: '部分付款', color: 'processing' },
-          2: { text: '已完成', color: 'success' },
-          3: { text: '逾期', color: 'error' }
-        };
-        const status = statusMap[value] || { text: '未知', color: 'default' };
-        return <Tag color={status.color}>{status.text}</Tag>;
-      },
-    },
-    {
-      title: '重要程度',
-      dataIndex: 'importance',
-      key: 'importance',
-      render: (value) => {
-        const importanceMap = {
-          0: { text: '不重要', color: 'default' },
-          1: { text: '一般', color: 'processing' },
-          2: { text: '重要', color: 'error' }
-        };
-        const importance = importanceMap[value] || { text: '未知', color: 'default' };
-        return <Tag color={importance.color}>{importance.text}</Tag>;
-      },
+    { title: '付款日期', dataIndex: 'PaymentDate', key: 'PaymentDate', width: 140,
+      render: (value, record) => dayjs(value || record.paymentDate).format('YYYY-MM-DD') },
+    { title: '备注', dataIndex: 'Notes', key: 'Notes', width: 200,
+      render: (value, record) => value || record.notes || '-' },
+    { title: '附件数量', dataIndex: 'AttachmentCount', key: 'AttachmentCount', width: 100,
+      render: (value, record) => {
+        const count = value ?? (record.attachments ? record.attachments.length : 0) ?? 0;
+        return count > 0 ? <span style={{ color: '#1890ff' }}>{count} 个</span> : <span style={{ color: '#999' }}>无</span>;
+      }
     }
   ];
 
@@ -186,9 +179,9 @@ const Dashboard = () => {
                           <Typography.Text type="secondary">{item.currencyCode}</Typography.Text>
                         </Space>
                         <Space size={16}>
-                          <Typography.Text>总额 ${item.totalUsd.toLocaleString()}</Typography.Text>
-                          <Typography.Text type="success">可用 ${item.availableUsd.toLocaleString()}</Typography.Text>
-                          <Typography.Text type="secondary">不可用 ${item.unavailableUsd.toLocaleString()}</Typography.Text>
+                          <Typography.Text>总额 ${Number(item.totalUsd || 0).toLocaleString()}</Typography.Text>
+                          <Typography.Text type="success">可用 ${Number(item.availableUsd || 0).toLocaleString()}</Typography.Text>
+                          <Typography.Text type="secondary">不可用 ${Number(item.unavailableUsd || 0).toLocaleString()}</Typography.Text>
                         </Space>
                       </div>
                       <div style={{ width: `${Math.min(100, widthScale * 100)}%`, height: 14, background: '#f0f0f0', borderRadius: 6, overflow: 'hidden' }}>

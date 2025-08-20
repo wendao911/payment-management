@@ -66,6 +66,7 @@ const PayableModal = ({
           importance: editingPayable.Importance || editingPayable.importance || 'normal',
           urgency: editingPayable.Urgency || editingPayable.urgency || 'normal',
           description: editingPayable.Description || editingPayable.description || '',
+          notes: editingPayable.Notes || editingPayable.notes || '',
         });
         
         // 调试日志
@@ -83,6 +84,7 @@ const PayableModal = ({
           importance: editingPayable.Importance || editingPayable.importance,
           urgency: editingPayable.Urgency || editingPayable.urgency,
           description: editingPayable.Description || editingPayable.description,
+          notes: editingPayable.Notes || editingPayable.notes,
         });
         
         // 初始化本地附件状态
@@ -151,6 +153,18 @@ const PayableModal = ({
               <Input placeholder="请输入应付编号" />
             </Form.Item>
           </Col>
+          <Col span={12}>
+            <Form.Item
+              name="description"
+              label="应付说明"
+              rules={[{ required: true, message: '请输入应付说明' }]}
+            >
+              <Input placeholder="请输入应付说明" />
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <Row gutter={16}>
           <Col span={12}>
             <Form.Item
               name="contractId"
@@ -311,8 +325,9 @@ const PayableModal = ({
         </Form.Item>
 
         <Form.Item
-          name="description"
+          name="notes"
           label="备注"
+          rules={[{ max: 500, message: '备注不能超过500个字符' }]}
         >
           <TextArea rows={3} />
         </Form.Item>

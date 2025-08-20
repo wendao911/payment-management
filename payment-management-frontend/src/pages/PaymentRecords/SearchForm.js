@@ -1,5 +1,5 @@
 import React from 'react';
-import { Form, Input, Select, DatePicker, Row, Col, Button, TreeSelect } from 'antd';
+import { Form, Input, Select, DatePicker, Row, Col, Button, TreeSelect, Space } from 'antd';
 import { SearchOutlined, ReloadOutlined } from '@ant-design/icons';
 
 const { Option } = Select;
@@ -80,14 +80,14 @@ const SearchForm = ({
         </Col>
         <Col xs={24} sm={12} md={6}>
           <Form.Item>
-            <Button type="primary" icon={<SearchOutlined />} htmlType="submit" loading={loading}>
-              查询
-            </Button>
-          </Form.Item>
-          <Form.Item>
-            <Button icon={<ReloadOutlined />} onClick={onReset} disabled={loading}>
-              重置
-            </Button>
+            <Space>
+              <Button type="primary" icon={<SearchOutlined />} htmlType="submit" loading={loading}>
+                查询
+              </Button>
+              <Button icon={<ReloadOutlined />} onClick={onReset} disabled={loading}>
+                重置
+              </Button>
+            </Space>
           </Form.Item>
         </Col>
       </Row>

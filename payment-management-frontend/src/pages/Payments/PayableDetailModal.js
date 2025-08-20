@@ -52,12 +52,12 @@ const PayableDetailModal = ({
   const handleAttachmentsChange = async (attachments) => {
     try {
       setLocalAttachments(attachments);
-      
+
       // 通知父组件刷新数据
       if (onRefresh) {
         await onRefresh();
       }
-      
+
       message.success('附件更新成功');
     } catch (error) {
       console.error('附件更新失败:', error);
@@ -68,7 +68,7 @@ const PayableDetailModal = ({
   // 刷新附件数据
   const refreshAttachments = async () => {
     if (!currentPayable?.Id) return;
-    
+
     try {
       setLoading(true);
       const response = await apiClient.get(`/attachment/payable/${currentPayable.Id}`);
@@ -157,8 +157,15 @@ const PayableDetailModal = ({
           <Row gutter={16}>
             <Col span={12}>
               <p><strong>应付编号：</strong>{currentPayable.PayableNumber}</p>
-              <p><strong>合同编号：</strong>{currentPayable.ContractNumber}</p>
-              <p><strong>合同标题：</strong>{currentPayable.ContractTitle || '无标题'}</p>
+              <p><strong>应付说明：</strong>{currentPayable.Description}</p>
+              <p><strong>合同：</strong>{
+                (() => {
+                  const number = currentPayable.ContractNumber || '';
+                  const title = currentPayable.ContractTitle || currentPayable.Title || '';
+                  if (number && title) return `${number} - ${title}`;
+                  return number || title || '无';
+                })()
+              }</p>
               <p><strong>供应商：</strong>{currentPayable.SupplierName || '未知供应商'}</p>
             </Col>
             <Col span={12}>
@@ -189,11 +196,11 @@ const PayableDetailModal = ({
               </p>
             </Col>
           </Row>
-          {currentPayable.Description && (
+          {(currentPayable.Notes || currentPayable.notes) && (
             <>
               <Divider />
               <p><strong>备注：</strong></p>
-              <p>{currentPayable.Description}</p>
+              <p>{currentPayable.Notes || currentPayable.notes}</p>
             </>
           )}
         </TabPane>

@@ -217,7 +217,8 @@ router.post('/', authenticateToken, [
   body('paymentDueDate').notEmpty().withMessage('付款截止日期不能为空'),
   body('importance').optional().isIn(['normal', 'important', 'very_important']).withMessage('重要程度无效'),
   body('urgency').optional().isIn(['normal', 'urgent', 'very_urgent', 'overdue']).withMessage('紧急程度无效'),
-  body('description').optional().isLength({ max: 500 }).withMessage('备注不能超过500个字符')
+  body('description').optional().isLength({ max: 500 }).withMessage('应付说明不能超过500个字符'),
+  body('notes').optional().isLength({ max: 500 }).withMessage('备注不能超过500个字符')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -231,7 +232,7 @@ router.post('/', authenticateToken, [
 
     const { 
       contractId, supplierId, payableAmount, 
-      currencyCode, paymentDueDate, importance, urgency, description
+      currencyCode, paymentDueDate, importance, urgency, description, notes
     } = req.body;
 
     // 检查合同是否存在
@@ -310,10 +311,10 @@ router.post('/', authenticateToken, [
       const [insertResult] = await connection.execute(`
         INSERT INTO payablemanagement (
           ContractId, SupplierId, PayableNumber, PayableAmount, CurrencyCode,
-          PaymentDueDate, Importance, Urgency, Description
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          PaymentDueDate, Importance, Urgency, Description, Notes
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [contractId, supplierId, payableNumber, payableAmount, currencyCode, 
-          paymentDueDate, importance || 'normal', urgency || 'normal', description]);
+          paymentDueDate, importance || 'normal', urgency || 'normal', description || null, notes || null]);
       
       const formId = insertResult.insertId;
       
@@ -355,7 +356,9 @@ router.put('/:id', authenticateToken, [
   body('currencyCode').optional().notEmpty().withMessage('币种不能为空'),
   body('importance').optional().isIn(['normal', 'important', 'very_important']).withMessage('重要程度无效'),
   body('urgency').optional().isIn(['normal', 'urgent', 'very_urgent', 'overdue']).withMessage('紧急程度无效'),
-  body('status').optional().isIn(['pending', 'partial', 'completed', 'overdue']).withMessage('状态无效')
+  body('status').optional().isIn(['pending', 'partial', 'completed', 'overdue']).withMessage('状态无效'),
+  body('description').optional().isLength({ max: 500 }).withMessage('应付说明不能超过500个字符'),
+  body('notes').optional().isLength({ max: 500 }).withMessage('备注不能超过500个字符')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);

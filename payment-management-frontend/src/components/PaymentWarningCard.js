@@ -61,7 +61,14 @@ const PaymentWarningCard = ({ warning, onViewDetails }) => {
           </div>
           
           <div className="mb-2">
-            <div className="font-medium">{warning.contractNumber}</div>
+            <div className="font-medium">{
+              (() => {
+                const number = warning.contractNumber || '';
+                const title = warning.contractTitle || warning.contractName || warning.title || '';
+                if (number && title) return `${number} - ${title}`;
+                return number || title || '-';
+              })()
+            }</div>
             <div className="text-sm text-gray-600">{warning.supplierName}</div>
           </div>
 

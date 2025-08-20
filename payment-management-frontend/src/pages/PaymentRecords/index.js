@@ -192,21 +192,38 @@ const PaymentRecords = () => {
       ),
     },
     {
-      title: '应付管理编号',
+      title: '应付编号',
       dataIndex: 'payableManagementId',
       key: 'payableManagementId',
       width: 150,
-      render: (value) => {
+      render: (value, record) => {
+        if (record.PayableNumber) return record.PayableNumber;
         const payable = payables.find(p => (p.Id === value || p.id === value));
-        return payable ? (payable.PayableNumber || payable.payableNumber) : value;
+        return payable?.PayableNumber || payable?.payableNumber || '-';
+      }
+    },
+    {
+      title: '应付说明',
+      dataIndex: 'Description',
+      key: 'Description',
+      width: 240,
+      render: (value, record) => {
+        if (record.Description) return record.Description;
+        const payable = payables.find(p => (p.Id === record.payableManagementId || p.id === record.payableManagementId));
+        return payable?.Description || payable?.description || '-';
       }
     },
     {
       title: '合同编号',
       dataIndex: 'ContractNumber',
       key: 'ContractNumber',
-      width: 160,
-      render: (value, record) => value || record.contractNumber || '-'
+      width: 220,
+      render: (value, record) => {
+        const number = record.ContractNumber || value || record.contractNumber || '';
+        const title = record.ContractTitle || record.Title || '';
+        if (number && title) return `${number} - ${title}`;
+        return number || title || '-';
+      }
     },
     {
       title: '供应商',
@@ -308,8 +325,8 @@ const PaymentRecords = () => {
                 value={paymentRecords.filter(record => {
                   const recordDate = new Date(record.PaymentDate || record.paymentDate);
                   const now = new Date();
-                  return recordDate.getMonth() === now.getMonth() && 
-                         recordDate.getFullYear() === now.getFullYear();
+                  return recordDate.getMonth() === now.getMonth() &&
+                    recordDate.getFullYear() === now.getFullYear();
                 }).length}
                 valueStyle={{ color: '#1890ff' }}
                 precision={0}

@@ -93,10 +93,22 @@ export const getPayableColumns = (currencies, onViewDetail, onEdit, onAddPayment
     width: 150,
   },
   {
+    title: '应付说明',
+    dataIndex: 'Description',
+    key: 'Description',
+    width: 240,
+  },
+  {
     title: '合同编号',
     dataIndex: 'ContractNumber',
     key: 'ContractNumber',
-    width: 120,
+    width: 200,
+    render: (value, record) => {
+      const number = record.ContractNumber || value || '';
+      const title = record.ContractTitle || record.Title || '';
+      if (number && title) return `${number} - ${title}`;
+      return number || title || '-';
+    },
   },
   {
     title: '供应商',
@@ -152,7 +164,7 @@ export const getPayableColumns = (currencies, onViewDetail, onEdit, onAddPayment
     render: (value) => {
       const { getImportanceColor, getImportanceText } = require('./utils');
       return (
-        <span style={{ 
+        <span style={{
           color: getImportanceColor(value),
           fontWeight: 'bold'
         }}>
@@ -169,7 +181,7 @@ export const getPayableColumns = (currencies, onViewDetail, onEdit, onAddPayment
     render: (value) => {
       const { getUrgencyColor, getUrgencyText } = require('./utils');
       return (
-        <span style={{ 
+        <span style={{
           color: getUrgencyColor(value),
           fontWeight: 'bold'
         }}>
@@ -186,7 +198,7 @@ export const getPayableColumns = (currencies, onViewDetail, onEdit, onAddPayment
     render: (value) => {
       const { getStatusColor, getStatusText } = require('./utils');
       return (
-        <span style={{ 
+        <span style={{
           color: getStatusColor(value),
           fontWeight: 'bold'
         }}>
@@ -194,6 +206,12 @@ export const getPayableColumns = (currencies, onViewDetail, onEdit, onAddPayment
         </span>
       );
     },
+  },
+  {
+    title: '备注',
+    dataIndex: 'Notes',
+    key: 'Notes',
+    width: 240,
   },
   {
     title: '操作',

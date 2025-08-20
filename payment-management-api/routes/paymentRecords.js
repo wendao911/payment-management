@@ -21,8 +21,10 @@ router.get('/', authenticateToken, async (req, res) => {
         pm.PayableNumber,
         pm.ContractId,
         pm.SupplierId,
+        pm.Description as Description,
         s.Name as SupplierName,
         c.ContractNumber,
+        c.Title as ContractTitle,
         (
           SELECT COUNT(*) FROM Attachments a 
           WHERE a.RelatedTable = 'PaymentRecords' AND a.RelatedId = pr.Id
