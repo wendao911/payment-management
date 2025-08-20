@@ -198,12 +198,16 @@ const Contracts = () => {
 
   // 处理文件上传
   const handleFileUpload = async (file) => {
+    // 只在编辑模式下允许上传附件
+    if (!editingContract?.Id) {
+      message.error('请先保存合同，然后再上传附件');
+      return;
+    }
+
     const formData = new FormData();
     formData.append('attachment', file);
-    
-    // 如果是编辑模式，直接关联到合同ID；如果是新增模式，使用临时ID
-    const contractId = editingContract?.Id || 'temp';
-    formData.append('contractId', contractId);
+    formData.append('relatedTable', 'Contracts');
+    formData.append('relatedId', editingContract.Id);
     
     try {
       setUploading(true);
@@ -229,10 +233,8 @@ const Contracts = () => {
       setAttachments(prev => [...prev, newAttachment]);
       message.success('文件上传成功');
       
-      // 如果是在编辑模式下上传附件，刷新合同列表以显示新附件
-      if (editingContract?.Id) {
-        fetchContracts();
-      }
+      // 刷新合同列表以显示新附件
+      fetchContracts();
     } catch (error) {
       console.error('Error uploading file:', error);
       if (error.response?.data?.message) {
@@ -248,10 +250,8 @@ const Contracts = () => {
   // 删除附件
   const handleDeleteAttachment = async (attachmentId) => {
     try {
-      // 如果是临时附件（没有ID），直接从本地状态删除
-      if (!attachmentId || attachmentId === 'temp') {
-        setAttachments(prev => prev.filter(att => att.Id !== attachmentId));
-        message.success('附件删除成功');
+      if (!attachmentId) {
+        message.error('无法识别附件ID');
         return;
       }
 
@@ -277,8 +277,8 @@ const Contracts = () => {
   const handleDownloadAttachment = async (attachment) => {
     try {
       const attachmentId = attachment?.Id || attachment?.id;
-      if (!attachmentId || attachmentId === 'temp') {
-        message.error('临时附件无法下载，请先保存合同');
+      if (!attachmentId) {
+        message.error('无法识别附件ID');
         return;
       }
 
@@ -511,26 +511,6 @@ const Contracts = () => {
         
         if (contractId) {
           console.log('新创建的合同ID:', contractId);
-          
-          // 如果有附件，更新附件的contractId
-          if (attachments.length > 0) {
-            console.log('开始关联附件到合同，附件数量:', attachments.length);
-            try {
-              await Promise.all(
-                attachments.map(async (attachment) => {
-                  const attachmentId = attachment.Id || attachment.id;
-                  if (attachmentId && attachmentId !== 'temp') {
-                    console.log('更新附件关联，附件ID:', attachmentId, '合同ID:', contractId);
-                    await apiClient.put(`/attachment/${attachmentId}`, { contractId });
-                  }
-                })
-              );
-              console.log('附件关联完成');
-            } catch (error) {
-              console.error('附件关联失败:', error);
-              message.warning('合同创建成功，但附件关联失败');
-            }
-          }
           message.success('创建成功');
         } else {
           throw new Error('创建合同失败：无法获取合同ID');

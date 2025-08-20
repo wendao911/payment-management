@@ -9,7 +9,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Suppliers from './pages/Suppliers';
 import Contracts from './pages/Contracts';
-import Payments from './pages/Payments';
+import Payments from './pages/Payments/index';
 import PaymentRecords from './pages/PaymentRecords';
 import Countries from './pages/Countries';
 import Banks from './pages/Banks';

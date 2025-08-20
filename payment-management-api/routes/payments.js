@@ -57,8 +57,11 @@ router.get('/search', authenticateToken, async (req, res) => {
         pm.*,
         c.ContractNumber,
         c.Title as ContractTitle,
+        c.TotalAmount as ContractAmount,
         s.Name as SupplierName,
         s.ContactPerson as SupplierContact,
+        s.Phone as SupplierPhone,
+        s.Email as SupplierEmail,
         cur.Name as CurrencyName,
         cur.Symbol as CurrencySymbol,
         COALESCE(SUM(pr.PaymentAmount), 0) as TotalPaidAmount,
@@ -214,7 +217,7 @@ router.post('/', authenticateToken, [
   body('paymentDueDate').notEmpty().withMessage('付款截止日期不能为空'),
   body('importance').optional().isIn(['normal', 'important', 'very_important']).withMessage('重要程度无效'),
   body('urgency').optional().isIn(['normal', 'urgent', 'very_urgent', 'overdue']).withMessage('紧急程度无效'),
-  body('description').optional()
+  body('description').optional().isLength({ max: 500 }).withMessage('备注不能超过500个字符')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -226,9 +229,9 @@ router.post('/', authenticateToken, [
       });
     }
 
-    const {
-      contractId, supplierId, payableAmount, currencyCode, paymentDueDate,
-      importance, urgency, description
+    const { 
+      contractId, supplierId, payableAmount, 
+      currencyCode, paymentDueDate, importance, urgency, description
     } = req.body;
 
     // 检查合同是否存在
@@ -301,19 +304,38 @@ router.post('/', authenticateToken, [
       }
     }
 
-    const result = await query(`
-      INSERT INTO payablemanagement (
-        ContractId, SupplierId, PayableNumber, PayableAmount, CurrencyCode,
-        PaymentDueDate, Importance, Urgency, Description
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [contractId, supplierId, payableNumber, payableAmount, currencyCode, 
-        paymentDueDate, importance || 'normal', urgency || 'normal', description]);
+    // 使用事务创建业务记录并关联临时附件
+    const result = await transaction(async (connection) => {
+      // 1. 创建业务记录
+      const [insertResult] = await connection.execute(`
+        INSERT INTO payablemanagement (
+          ContractId, SupplierId, PayableNumber, PayableAmount, CurrencyCode,
+          PaymentDueDate, Importance, Urgency, Description
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `, [contractId, supplierId, payableNumber, payableAmount, currencyCode, 
+          paymentDueDate, importance || 'normal', urgency || 'normal', description]);
+      
+      const formId = insertResult.insertId;
+      
+      // 2. 如果有临时附件，更新其关联关系
+      // if (tempAttachmentIds.length > 0) { // This line is removed
+      //   const updateAttachmentsQuery = `
+      //     UPDATE attachments 
+      //     SET RelatedTable = 'PayableManagement', RelatedId = ? 
+      //     WHERE Id IN (?) AND RelatedTable = 'Temp'
+      //   `;
+        
+      //   await connection.execute(updateAttachmentsQuery, [formId, tempAttachmentIds]);
+      // }
+      
+      return { insertId: formId };
+    });
 
     res.status(201).json({
       success: true,
       message: '应付管理记录创建成功',
       data: { 
-        id: result.insertId,
+        Id: result.insertId,
         payableNumber 
       }
     });

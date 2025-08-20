@@ -223,7 +223,7 @@ router.post('/', authenticateToken, [
   body('paymentDescription').notEmpty().withMessage('付款说明不能为空'),
   body('paymentAmount').isFloat({ min: 0 }).withMessage('付款金额必须大于0'),
   body('paymentDate').notEmpty().withMessage('付款日期不能为空'),
-  body('notes').optional()
+  body('notes').optional().isLength({ max: 500 }).withMessage('备注不能超过500个字符')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -235,7 +235,7 @@ router.post('/', authenticateToken, [
       });
     }
 
-    const {
+    const { 
       paymentNumber, payableManagementId, currencyCode, paymentDescription, 
       paymentAmount, paymentDate, notes
     } = req.body;
@@ -316,43 +316,18 @@ router.post('/', authenticateToken, [
       }
     }
 
-    // 创建付款记录（带回退逻辑）
-    console.log('准备创建付款记录:', {
-      finalPaymentNumber,
-      finalPayableManagementId,
-      finalCurrencyCode,
-      finalPaymentDescription,
-      finalPaymentAmount,
-      finalPaymentDate,
-      finalNotes
-    });
-
-    let result;
-    try {
-      result = await query(`
-        INSERT INTO PaymentRecords (
-          PaymentNumber, PayableManagementId, CurrencyCode, PaymentDescription, 
-          PaymentAmount, PaymentDate, Notes
-        ) VALUES (?, ?, ?, ?, ?, ?, ?)
-      `, [
-        finalPaymentNumber,
-        Number(finalPayableManagementId),
-        String(finalCurrencyCode),
-        String(finalPaymentDescription || ''),
-        Number(finalPaymentAmount),
-        String(finalPaymentDate),
-        finalNotes ?? null
-      ]);
-    } catch (insertError) {
-      // 如果 PaymentNumber 字段不存在，降级为不插入该字段
-      if (insertError?.code === 'ER_BAD_FIELD_ERROR' && /PaymentNumber/i.test(insertError?.sqlMessage || '')) {
-        console.warn('检测到 PaymentNumber 字段不存在，回退为不带付款编号的插入');
-        result = await query(`
+    // 使用事务创建业务记录并关联临时附件
+    const result = await transaction(async (connection) => {
+      // 1. 创建付款记录
+      let insertResult;
+      try {
+        [insertResult] = await connection.execute(`
           INSERT INTO PaymentRecords (
-            PayableManagementId, CurrencyCode, PaymentDescription, 
+            PaymentNumber, PayableManagementId, CurrencyCode, PaymentDescription, 
             PaymentAmount, PaymentDate, Notes
-          ) VALUES (?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?)
         `, [
+          finalPaymentNumber,
           Number(finalPayableManagementId),
           String(finalCurrencyCode),
           String(finalPaymentDescription || ''),
@@ -360,36 +335,61 @@ router.post('/', authenticateToken, [
           String(finalPaymentDate),
           finalNotes ?? null
         ]);
-      } else {
-        throw insertError;
+      } catch (insertError) {
+        // 如果 PaymentNumber 字段不存在，降级为不插入该字段
+        if (insertError?.code === 'ER_BAD_FIELD_ERROR' && /PaymentNumber/i.test(insertError?.sqlMessage || '')) {
+          console.warn('检测到 PaymentNumber 字段不存在，回退为不带付款编号的插入');
+          [insertResult] = await connection.execute(`
+            INSERT INTO PaymentRecords (
+              PayableManagementId, CurrencyCode, PaymentDescription, 
+              PaymentAmount, PaymentDate, Notes
+            ) VALUES (?, ?, ?, ?, ?, ?)
+          `, [
+            Number(finalPayableManagementId),
+            String(finalCurrencyCode),
+            String(finalPaymentDescription || ''),
+            Number(finalPaymentAmount),
+            String(finalPaymentDate),
+            finalNotes ?? null
+          ]);
+        } else {
+          throw insertError;
+        }
       }
-    }
+      
+      const formId = insertResult.insertId;
+      
+      // 2. 如果有临时附件，更新其关联关系
+      // 删除临时附件ID的验证和处理逻辑
+      
+      // 3. 更新应付管理状态
+      const newTotalPaid = parseFloat(totalPaid[0].totalPaid) + parseFloat(paymentAmount);
+      let newStatus = 'pending';
+      
+      if (newTotalPaid >= parseFloat(payables[0].PayableAmount)) {
+        newStatus = 'completed';
+      } else if (newTotalPaid > 0) {
+        newStatus = 'partial';
+      } else {
+        newStatus = 'pending';
+      }
 
-    // 更新应付管理状态
-    const newTotalPaid = parseFloat(totalPaid[0].totalPaid) + parseFloat(paymentAmount);
-    let newStatus = 'pending';
-    
-    if (newTotalPaid >= parseFloat(payables[0].PayableAmount)) {
-      newStatus = 'completed';
-    } else if (newTotalPaid > 0) {
-      newStatus = 'partial';
-    } else {
-      newStatus = 'pending';
-    }
-
-    await query(`
-      UPDATE PayableManagement 
-      SET Status = ?, UpdatedAt = CURRENT_TIMESTAMP(6)
-      WHERE Id = ?
-    `, [newStatus, payableManagementId]);
+      await connection.execute(`
+        UPDATE PayableManagement 
+        SET Status = ?, UpdatedAt = CURRENT_TIMESTAMP(6)
+        WHERE Id = ?
+      `, [newStatus, payableManagementId]);
+      
+      return { insertId: formId, newStatus };
+    });
 
     res.status(201).json({
       success: true,
       message: '付款记录创建成功',
       data: { 
-        id: result.insertId,
+        Id: result.insertId,
         paymentNumber: finalPaymentNumber,
-        newStatus
+        newStatus: result.newStatus
       }
     });
   } catch (error) {

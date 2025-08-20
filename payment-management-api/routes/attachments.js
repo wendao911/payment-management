@@ -1,6 +1,6 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
-const { query } = require('../config/database');
+const { query, transaction } = require('../config/database');
 const { authenticateToken } = require('../middleware/auth');
 const { upload, handleUploadError } = require('../middleware/upload');
 const fs = require('fs');
@@ -113,89 +113,100 @@ router.post('/', authenticateToken, upload.single('attachment'), handleUploadErr
       });
     }
 
-    const { paymentId, contractId, payableId } = req.body;
-    console.log('解析的字段:', { paymentId, contractId, payableId });
+    const { paymentId, contractId, payableId, relatedTable, relatedId } = req.body;
+    console.log('解析的字段:', { paymentId, contractId, payableId, relatedTable, relatedId });
 
-    let relatedTable = null;
-    let relatedId = null;
+    let finalRelatedTable = null;
+    let finalRelatedId = null;
 
-    // 确定关联表和ID
-    if (payableId && payableId !== 'temp') {
-      relatedTable = 'PayableManagement';
-      relatedId = payableId;
-      
-      // 验证应付管理记录是否存在
-      const payables = await query(
-        'SELECT Id FROM PayableManagement WHERE Id = ?',
-        [payableId]
-      );
-      
-      if (payables.length === 0) {
-        console.log('应付管理记录不存在:', payableId);
-        return res.status(400).json({
-          success: false,
-          message: '应付管理记录不存在'
-        });
-      }
-    } else if (contractId && contractId !== 'temp') {
-      relatedTable = 'Contracts';
-      relatedId = contractId;
-      
-      // 验证合同是否存在
-      const contracts = await query(
-        'SELECT Id FROM Contracts WHERE Id = ?',
-        [contractId]
-      );
-      
-      if (contracts.length === 0) {
-        console.log('合同不存在:', contractId);
-        return res.status(400).json({
-          success: false,
-          message: '合同不存在'
-        });
-      }
-    } else if (paymentId && paymentId !== 'temp') {
-      relatedTable = 'PaymentRecords';
-      relatedId = paymentId;
-      
-      // 验证付款记录是否存在
-      const payments = await query(
-        'SELECT Id FROM PaymentRecords WHERE Id = ?',
-        [paymentId]
-      );
-      
-      if (payments.length === 0) {
-        console.log('付款记录不存在:', paymentId);
-        return res.status(400).json({
-          success: false,
-          message: '付款记录不存在'
-        });
+    // 优先使用新的参数格式（relatedTable + relatedId）
+    if (relatedTable && relatedId) {
+      finalRelatedTable = relatedTable;
+      finalRelatedId = relatedId;
+      console.log('使用新的参数格式:', { relatedTable, relatedId });
+    } else {
+      // 兼容旧的参数格式（payableId, contractId, paymentId）
+      if (payableId && payableId !== 'temp') {
+        finalRelatedTable = 'PayableManagement';
+        finalRelatedId = payableId;
+        
+        // 验证应付管理记录是否存在
+        const payables = await query(
+          'SELECT Id FROM PayableManagement WHERE Id = ?',
+          [payableId]
+        );
+        
+        if (payables.length === 0) {
+          console.log('应付管理记录不存在:', payableId);
+          return res.status(400).json({
+            success: false,
+            message: '应付管理记录不存在'
+          });
+        }
+      } else if (contractId && contractId !== 'temp') {
+        finalRelatedTable = 'Contracts';
+        finalRelatedId = contractId;
+        
+        // 验证合同是否存在
+        const contracts = await query(
+          'SELECT Id FROM Contracts WHERE Id = ?',
+          [contractId]
+        );
+        
+        if (contracts.length === 0) {
+          console.log('合同不存在:', contractId);
+          return res.status(400).json({
+            success: false,
+            message: '合同不存在'
+          });
+        }
+      } else if (paymentId && paymentId !== 'temp') {
+        finalRelatedTable = 'PaymentRecords';
+        finalRelatedId = paymentId;
+        
+        // 验证付款记录是否存在
+        const payments = await query(
+          'SELECT Id FROM PaymentRecords WHERE Id = ?',
+          [paymentId]
+        );
+        
+        if (payments.length === 0) {
+          console.log('付款记录不存在:', paymentId);
+          return res.status(400).json({
+            success: false,
+            message: '付款记录不存在'
+          });
+        }
       }
     }
 
-    // 处理临时附件上传（用于新建记录时）
-    if (payableId === 'temp' || contractId === 'temp' || paymentId === 'temp') {
-      // 临时附件，先保存到临时表或使用特殊标识
-      relatedTable = 'Temp';
-      relatedId = 0; // 临时ID，后续会更新
-      console.log('处理临时附件上传，使用临时关联');
-    }
-
-    if (!relatedTable || relatedId === null) {
-      console.log('缺少关联信息');
+    // 检查是否有有效的关联ID
+    if (!finalRelatedTable || !finalRelatedId || finalRelatedId === 'temp' || finalRelatedId === 0) {
+      console.log('缺少有效的关联信息');
       return res.status(400).json({
         success: false,
-        message: '必须关联应付管理、合同或付款记录'
+        message: '请先保存业务记录，然后再上传附件'
       });
     }
+
+    // 确保ID是有效的整数
+    const numericId = parseInt(finalRelatedId);
+    if (isNaN(numericId)) {
+      console.log('无效的ID值:', finalRelatedId);
+      return res.status(400).json({
+        success: false,
+        message: '无效的关联ID'
+      });
+    }
+    finalRelatedId = numericId;
 
     console.log('准备插入附件数据:', {
       fileName: req.file.originalname,
       filePath: req.file.path,
       fileType: req.file.mimetype,
       fileSize: req.file.size,
-      relatedTable: relatedTable,
-      relatedId: relatedId
+      relatedTable: finalRelatedTable,
+      relatedId: finalRelatedId
     });
 
     const result = await query(`
@@ -210,8 +221,8 @@ router.post('/', authenticateToken, upload.single('attachment'), handleUploadErr
       req.file.size,
       req.file.mimetype,
       req.file.mimetype,
-      relatedTable,
-      relatedId,
+      finalRelatedTable,
+      finalRelatedId,
       req.user?.id || null
     ]);
 
@@ -226,7 +237,9 @@ router.post('/', authenticateToken, upload.single('attachment'), handleUploadErr
         OriginalFileName: req.file.originalname,
         FilePath: req.file.path,
         FileSize: req.file.size,
-        FileType: req.file.mimetype
+        FileType: req.file.mimetype,
+        RelatedTable: finalRelatedTable,
+        RelatedId: finalRelatedId
       }
     });
   } catch (error) {
@@ -389,7 +402,7 @@ router.get('/:id/download', authenticateToken, async (req, res) => {
     const { id } = req.params;
     
     const attachments = await query(
-      'SELECT FileName, FilePath, FileType FROM Attachments WHERE Id = ?',
+      'SELECT FileName, FilePath, FileType, OriginalFileName FROM Attachments WHERE Id = ?',
       [id]
     );
     
@@ -402,8 +415,24 @@ router.get('/:id/download', authenticateToken, async (req, res) => {
 
     const attachment = attachments[0];
     
+    // 构建完整的文件路径
+    let filePath = attachment.FilePath;
+    
+    // 如果是相对路径，转换为绝对路径
+    if (!path.isAbsolute(filePath)) {
+      const uploadDir = process.env.UPLOAD_PATH || './uploads';
+      filePath = path.resolve(uploadDir, filePath);
+    }
+    
+    console.log('下载附件，文件路径:', {
+      originalPath: attachment.FilePath,
+      resolvedPath: filePath,
+      exists: fs.existsSync(filePath)
+    });
+    
     // 检查文件是否存在
-    if (!fs.existsSync(attachment.FilePath)) {
+    if (!fs.existsSync(filePath)) {
+      console.error('文件不存在:', filePath);
       return res.status(404).json({
         success: false,
         message: '文件不存在'
@@ -411,11 +440,13 @@ router.get('/:id/download', authenticateToken, async (req, res) => {
     }
 
     // 设置响应头
+    const fileName = attachment.OriginalFileName || attachment.FileName;
     res.setHeader('Content-Type', attachment.FileType);
-    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(attachment.FileName)}"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
+    res.setHeader('Cache-Control', 'no-cache');
     
     // 发送文件
-    res.sendFile(path.resolve(attachment.FilePath));
+    res.sendFile(filePath);
   } catch (error) {
     console.error('下载附件错误:', error);
     res.status(500).json({
@@ -528,6 +559,50 @@ router.get('/stats/summary', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       message: '获取附件统计信息失败'
+    });
+  }
+});
+
+// 关联临时附件到业务记录
+router.post('/associate-temp', authenticateToken, async (req, res) => {
+  try {
+    const { attachmentIds, relatedTable, relatedId } = req.body;
+    
+    if (!attachmentIds || !Array.isArray(attachmentIds) || attachmentIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: '附件ID列表不能为空'
+      });
+    }
+    
+    if (!relatedTable || !relatedId) {
+      return res.status(400).json({
+        success: false,
+        message: '关联表和ID不能为空'
+      });
+    }
+    
+    // 使用事务更新临时附件的关联关系
+    await transaction(async (connection) => {
+      const updateQuery = `
+        UPDATE attachments 
+        SET RelatedTable = ?, RelatedId = ? 
+        WHERE Id IN (?) AND RelatedTable = 'Temp'
+      `;
+      
+      await connection.execute(updateQuery, [relatedTable, relatedId, attachmentIds]);
+    });
+    
+    res.json({
+      success: true,
+      message: '临时附件关联成功'
+    });
+    
+  } catch (error) {
+    console.error('关联临时附件失败:', error);
+    res.status(500).json({
+      success: false,
+      message: '关联临时附件失败'
     });
   }
 });
