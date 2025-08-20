@@ -415,13 +415,23 @@ router.get('/:id/download', authenticateToken, async (req, res) => {
 
     const attachment = attachments[0];
     
-    // 构建完整的文件路径
+    // 构建完整的文件路径（兼容多种保存形式）
+    const uploadDir = process.env.UPLOAD_PATH || path.resolve(process.cwd(), 'uploads');
     let filePath = attachment.FilePath;
     
-    // 如果是相对路径，转换为绝对路径
     if (!path.isAbsolute(filePath)) {
-      const uploadDir = process.env.UPLOAD_PATH || './uploads';
-      filePath = path.resolve(uploadDir, filePath);
+      // 去掉可能的开头 './'
+      const normalized = filePath.replace(/^\.\/+/, '');
+      // 如果已包含 'uploads' 前缀，则从项目根目录解析
+      if (
+        normalized.startsWith('uploads' + path.sep) ||
+        normalized.startsWith('uploads/')
+      ) {
+        filePath = path.resolve(process.cwd(), normalized);
+      } else {
+        // 否则相对于上传根目录解析
+        filePath = path.resolve(uploadDir, normalized);
+      }
     }
     
     console.log('下载附件，文件路径:', {
