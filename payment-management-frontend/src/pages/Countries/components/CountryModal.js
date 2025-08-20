@@ -19,13 +19,13 @@ const CountryModal = ({
         Code: editingCountry.Code,
         Name: editingCountry.Name,
         CurrencyCode: editingCountry.CurrencyCode,
-        IsActive: editingCountry.IsActive ? 'true' : 'false'
+        IsActive: editingCountry.IsActive ? true : false
       });
     } else if (visible && !editingCountry) {
       form.resetFields();
       // 设置默认状态为启用
       form.setFieldsValue({
-        IsActive: 'true'
+        IsActive: true
       });
     }
   }, [visible, editingCountry, form]);
