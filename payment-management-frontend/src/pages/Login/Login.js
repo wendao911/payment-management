@@ -11,12 +11,15 @@ const Login = () => {
   const location = useLocation();
   const { login } = useAuth();
 
+  // 添加调试信息
+  console.log('Login组件渲染', { location: location.pathname });
+
   const onFinish = async (values) => {
     setLoading(true);
     try {
       const result = await login(values.username, values.password);
       if (result.success) {
-        const from = location.state?.from?.pathname || '/';
+        const from = location.state?.from?.pathname || '/dashboard';
         message.success('登录成功！');
         navigate(from, { replace: true });
       } else {

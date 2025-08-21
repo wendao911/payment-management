@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ConfigProvider } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import { AuthProvider } from './contexts/AuthContext';
@@ -25,8 +25,8 @@ function App() {
           <div className="App">
             <ResizeObserverErrorBoundary>
               <Routes>
-                <Route path="/login" element={<Login />} />
-                <Route path="/" element={
+                <Route path="/" element={<Login />} />
+                <Route path="/dashboard" element={
                   <ProtectedRoute>
                     <Layout>
                       <Dashboard />

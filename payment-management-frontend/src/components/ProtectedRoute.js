@@ -22,7 +22,7 @@ const ProtectedRoute = ({ children, requiredRole = null }) => {
 
   if (!isAuthenticated()) {
     // 重定向到登录页面，并保存当前路径
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/" state={{ from: location }} replace />;
   }
 
   // 如果指定了角色要求，检查用户是否有权限

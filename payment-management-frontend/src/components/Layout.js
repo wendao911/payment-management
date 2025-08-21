@@ -38,7 +38,7 @@ const Layout = ({ children }) => {
 
   const menuItems = [
     {
-      key: '/',
+      key: '/dashboard',
       icon: <DashboardOutlined />,
       label: '仪表板',
     },
@@ -99,7 +99,7 @@ const Layout = ({ children }) => {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate('/');
   };
 
   // 生成面包屑导航
@@ -108,7 +108,7 @@ const Layout = ({ children }) => {
     const breadcrumbItems = [
       {
         title: <HomeOutlined />,
-        onClick: () => navigate('/'),
+        onClick: () => navigate('/dashboard'),
       },
     ];
 

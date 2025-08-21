@@ -1,21 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
+import { getBackendURL } from '../utils/api';
 
-// 动态获取后端服务器地址
-const getBackendURL = () => {
-  // 检查环境变量
-  if (process.env.REACT_APP_API_URL) {
-    return process.env.REACT_APP_API_URL;
-  }
-  
-  // 如果是本地开发，使用当前页面的主机名
-  if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-    // 局域网访问时，使用当前页面的主机名，但端口改为5000
-    return `http://${window.location.hostname}:5000/api`;
-  }
-  // 本地开发使用当前页面的主机名和端口5000
-  return `http://${window.location.hostname}:5000/api`;
-};
+// 基地址改为使用统一的 getBackendURL，避免 Electron 下 window.location 为空导致的非法 URL
 
 const AuthContext = createContext();
 
@@ -59,7 +46,9 @@ export const AuthProvider = ({ children }) => {
 
   const validateToken = async (tokenToValidate) => {
     try {
-      const response = await axios.get(`${getBackendURL()}/auth/me`);
+      const base = getBackendURL();
+      console.log('校验Token使用的API地址:', `${base}/auth/me`);
+      const response = await axios.get(`${base}/auth/me`);
       if (response.data.success) {
         setUser(response.data.data);
         setLoading(false);
@@ -74,7 +63,9 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (username, password) => {
     try {
-      const response = await axios.post(`${getBackendURL()}/auth/login`, {
+      const base = getBackendURL();
+      console.log('登录使用的API地址:', `${base}/auth/login`);
+      const response = await axios.post(`${base}/auth/login`, {
         username,
         password
       });
@@ -115,6 +106,9 @@ export const AuthProvider = ({ children }) => {
     
     // 清除axios默认headers
     delete axios.defaults.headers.common['Authorization'];
+    
+    // 设置loading为false，避免白屏
+    setLoading(false);
     
     // 调用后端登出接口（可选）
     if (token) {
