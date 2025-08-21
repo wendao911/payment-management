@@ -1,6 +1,9 @@
-import dayjs from '../../utils/dayjs';
+import React from 'react';
+import { Tag, Button, Space } from 'antd';
+import { EyeOutlined, EditOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
+import dayjs from '../../../utils/dayjs';
 
-// 样式常量
+// 表格样式
 export const paymentTableStyles = `
   .payment-records-table .ant-table-thead > tr > th {
     background-color: #f0f8ff !important;
@@ -168,7 +171,7 @@ export const getPayableColumns = (currencies, onViewDetail, onEdit, onAddPayment
     key: 'Importance',
     width: 100,
     render: (value) => {
-      const { getImportanceColor, getImportanceText } = require('./utils');
+      const { getImportanceColor, getImportanceText } = require('../utils/helpers');
       return (
         <span style={{
           color: getImportanceColor(value),
@@ -185,7 +188,7 @@ export const getPayableColumns = (currencies, onViewDetail, onEdit, onAddPayment
     key: 'Urgency',
     width: 100,
     render: (value) => {
-      const { getUrgencyColor, getUrgencyText } = require('./utils');
+      const { getUrgencyColor, getUrgencyText } = require('../utils/helpers');
       return (
         <span style={{
           color: getUrgencyColor(value),
@@ -202,7 +205,7 @@ export const getPayableColumns = (currencies, onViewDetail, onEdit, onAddPayment
     key: 'Status',
     width: 100,
     render: (value) => {
-      const { getStatusColor, getStatusText } = require('./utils');
+      const { getStatusColor, getStatusText } = require('../utils/helpers');
       return (
         <span style={{
           color: getStatusColor(value),
@@ -430,3 +433,20 @@ export const getPaymentRecordColumns = (currencies, onViewDetail, onEdit, onDele
     }
   }
 ];
+
+// 辅助函数
+const convertToUSD = (amount, fromCurrency, currencies = []) => {
+  if (!amount || !fromCurrency) return 0;
+  
+  // 如果已经是USD，直接返回
+  if (fromCurrency === 'USD') return parseFloat(amount);
+  
+  // 查找货币的汇率信息
+  const currency = currencies.find(c => c.Code === fromCurrency);
+  if (currency && currency.ExchangeRate) {
+    return parseFloat(amount) * parseFloat(currency.ExchangeRate);
+  }
+  
+  // 如果没有找到汇率，返回原值
+  return parseFloat(amount);
+};

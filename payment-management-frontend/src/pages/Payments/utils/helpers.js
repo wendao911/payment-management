@@ -70,73 +70,95 @@ export const getExchangeRateToUSD = (currencyCode, currencies = []) => {
   return rate && rate > 0 ? rate : 1.0;
 };
 
-export const convertToUSD = (amount, currencyCode, currencies = []) => {
-  const numeric = Number(amount || 0);
-  const rate = getExchangeRateToUSD(currencyCode, currencies);
-  if (!rate || rate <= 0) return numeric;
-  // rate表示 1 USD = rate [currencyCode]
-  // 因此 某币种金额 -> USD = 金额 / rate
-  return numeric / rate;
-};
-
-// 合同查找工具函数
-export const findContractById = (contracts, contractId) => {
-  for (const contract of contracts) {
-    if (contract.Id === contractId) {
-      return contract;
-    }
-    // 递归查找子合同
-    if (contract.children && contract.children.length > 0) {
-      const found = findContractById(contract.children, contractId);
-      if (found) return found;
-    }
+// 货币转换相关函数 - 使用更完整的实现
+export const convertToUSD = (amount, fromCurrency, currencies = []) => {
+  if (!amount || !fromCurrency) return 0;
+  
+  // 如果已经是USD，直接返回
+  if (fromCurrency === 'USD') return parseFloat(amount);
+  
+  // 查找货币的汇率信息
+  const currency = currencies.find(c => c.Code === fromCurrency);
+  if (currency && currency.ExchangeRate) {
+    return parseFloat(amount) * parseFloat(currency.ExchangeRate);
   }
-  return null;
+  
+  // 如果没有找到汇率，返回原值
+  return parseFloat(amount);
 };
 
-// 数据验证工具函数
-export const validatePayableData = (data) => {
+// 合同查找函数 - 使用更完整的实现
+export const findContractById = (contractId, contracts = []) => {
+  if (!contractId) return null;
+  
+  const findContract = (contracts, id) => {
+    for (const contract of contracts) {
+      if (contract.Id === id) {
+        return contract;
+      }
+      if (contract.children && contract.children.length > 0) {
+        const found = findContract(contract.children, id);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+  
+  return findContract(contracts, contractId);
+};
+
+// 数据验证函数 - 使用更完整的实现
+export const validatePayableData = (values) => {
   const errors = [];
   
-  if (!data.payableNumber || data.payableNumber.trim() === '') {
-    errors.push('请输入应付编号');
+  if (!values.PayableNumber) {
+    errors.push('应付编号不能为空');
   }
-  if (!data.contractId || isNaN(data.contractId)) {
-    errors.push('请选择有效的合同');
+  
+  if (!values.SupplierId) {
+    errors.push('供应商不能为空');
   }
-  if (!data.supplierId || isNaN(data.supplierId)) {
-    errors.push('请选择有效的供应商');
+  
+  if (!values.ContractId) {
+    errors.push('合同不能为空');
   }
-  if (!data.payableAmount || isNaN(data.payableAmount) || data.payableAmount <= 0) {
-    errors.push('请输入有效的应付金额');
+  
+  if (!values.PayableAmount || values.PayableAmount <= 0) {
+    errors.push('应付金额必须大于0');
   }
-  if (!data.currencyCode) {
-    errors.push('请选择币种');
+  
+  if (!values.CurrencyCode) {
+    errors.push('币种不能为空');
   }
-  if (!data.paymentDueDate) {
-    errors.push('请选择付款截止日期');
+  
+  if (!values.PaymentDueDate) {
+    errors.push('付款到期日不能为空');
   }
   
   return errors;
 };
 
-export const validatePaymentRecordData = (data) => {
+export const validatePaymentRecordData = (values) => {
   const errors = [];
   
-  if (!data.paymentNumber || data.paymentNumber.trim() === '') {
-    errors.push('请输入付款编号');
+  if (!values.paymentNumber) {
+    errors.push('付款编号不能为空');
   }
-  if (!data.paymentDescription || data.paymentDescription.trim() === '') {
-    errors.push('请输入付款说明');
+  
+  if (!values.currencyCode) {
+    errors.push('币种不能为空');
   }
-  if (!data.paymentAmount || isNaN(data.paymentAmount) || data.paymentAmount <= 0) {
-    errors.push('请输入有效的付款金额');
+  
+  if (!values.paymentDescription) {
+    errors.push('付款描述不能为空');
   }
-  if (!data.currencyCode) {
-    errors.push('请选择币种');
+  
+  if (!values.paymentAmount || values.paymentAmount <= 0) {
+    errors.push('付款金额必须大于0');
   }
-  if (!data.paymentDate) {
-    errors.push('请选择付款日期');
+  
+  if (!values.paymentDate) {
+    errors.push('付款日期不能为空');
   }
   
   return errors;
