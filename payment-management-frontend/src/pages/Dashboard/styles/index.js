@@ -90,9 +90,16 @@ export const dashboardStyles = `
   .dashboard-card .ant-spin-container {
     min-height: 120px;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
   }
+
+  .dashboard-card .ant-table {
+    width: 100%;
+  }
+
+    
   
   /* 空状态样式 */
   .dashboard-card .ant-empty {
