@@ -37,10 +37,10 @@ router.get('/account/:bankAccountId', authenticateToken, async (req, res) => {
 
 // 创建银行账户余额记录
 router.post('/', authenticateToken, [
-  body('bankAccountId').isInt({ min: 1 }).withMessage('银行账户ID无效'),
-  body('balance').isFloat({ min: 0 }).withMessage('余额必须是非负数'),
-  body('balanceStatus').isIn(['Available', 'Unavailable']).withMessage('余额状态无效'),
-  body('notes').optional()
+  body('BankAccountId').isInt({ min: 1 }).withMessage('银行账户ID无效'),
+  body('Balance').isFloat({ min: 0 }).withMessage('余额必须是非负数'),
+  body('BalanceStatus').isIn(['Available', 'Unavailable']).withMessage('余额状态无效'),
+  body('Notes').optional()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -52,12 +52,12 @@ router.post('/', authenticateToken, [
       });
     }
 
-    const { bankAccountId, balance, balanceStatus, notes } = req.body;
+    const { BankAccountId, Balance, BalanceStatus, Notes } = req.body;
 
     // 检查银行账户是否存在
     const accounts = await query(
       'SELECT Id FROM BankAccounts WHERE Id = ? AND IsActive = TRUE',
-      [bankAccountId]
+      [BankAccountId]
     );
     
     if (accounts.length === 0) {
@@ -71,7 +71,7 @@ router.post('/', authenticateToken, [
       INSERT INTO BankAccountBalances (
         BankAccountId, Balance, BalanceStatus, Notes
       ) VALUES (?, ?, ?, ?)
-    `, [bankAccountId, balance, balanceStatus, notes || null]);
+    `, [BankAccountId, Balance, BalanceStatus, Notes || null]);
 
     res.status(201).json({
       success: true,
@@ -89,9 +89,9 @@ router.post('/', authenticateToken, [
 
 // 更新银行账户余额记录
 router.put('/:id', authenticateToken, [
-  body('balance').optional().isFloat({ min: 0 }).withMessage('余额必须是非负数'),
-  body('balanceStatus').optional().isIn(['Available', 'Unavailable']).withMessage('余额状态无效'),
-  body('notes').optional()
+  body('Balance').optional().isFloat({ min: 0 }).withMessage('余额必须是非负数'),
+  body('BalanceStatus').optional().isIn(['Available', 'Unavailable']).withMessage('余额状态无效'),
+  body('Notes').optional()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);

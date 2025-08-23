@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Modal, Form, Input, DatePicker, Select, TreeSelect, message } from 'antd';
+import { Modal, Form, Input, DatePicker, Select, TreeSelect } from 'antd';
 import dayjs from '../../../utils/dayjs';
 
 const { Option } = Select;
@@ -18,15 +18,15 @@ const ContractFormModal = ({
   useEffect(() => {
     if (visible && editingContract) {
       form.setFieldsValue({
-        contractNumber: editingContract.ContractNumber,
-        title: editingContract.Title,
-        description: editingContract.Description,
-        contractDate: editingContract.ContractDate ? dayjs(editingContract.ContractDate) : null,
-        startDate: editingContract.StartDate ? dayjs(editingContract.StartDate) : null,
-        endDate: editingContract.EndDate ? dayjs(editingContract.EndDate) : null,
-        status: editingContract.Status,
-        supplierId: editingContract.SupplierId,
-        parentContractId: editingContract.ParentContractId,
+        ContractNumber: editingContract.ContractNumber,
+        Title: editingContract.Title,
+        Description: editingContract.Description,
+        ContractDate: editingContract.ContractDate ? dayjs(editingContract.ContractDate) : null,
+        StartDate: editingContract.StartDate ? dayjs(editingContract.StartDate) : null,
+        EndDate: editingContract.EndDate ? dayjs(editingContract.EndDate) : null,
+        Status: editingContract.Status,
+        SupplierId: editingContract.SupplierId,
+        ParentContractId: editingContract.ParentContractId,
       });
     } else {
       form.resetFields();
@@ -65,7 +65,7 @@ const ContractFormModal = ({
         style={{ marginTop: 16 }}
       >
         <Form.Item
-          name="contractNumber"
+          name="ContractNumber"
           label="合同编号"
           rules={[{ required: true, message: '请输入合同编号' }]}
         >
@@ -73,7 +73,7 @@ const ContractFormModal = ({
         </Form.Item>
 
         <Form.Item
-          name="title"
+          name="Title"
           label="合同标题"
           rules={[{ required: true, message: '请输入合同标题' }]}
         >
@@ -81,14 +81,14 @@ const ContractFormModal = ({
         </Form.Item>
 
         <Form.Item
-          name="description"
+          name="Description"
           label="合同描述"
         >
           <Input.TextArea rows={3} placeholder="请输入合同描述" />
         </Form.Item>
 
         <Form.Item
-          name="supplierId"
+          name="SupplierId"
           label="供应商"
           rules={[{ required: true, message: '请选择供应商' }]}
         >
@@ -105,7 +105,7 @@ const ContractFormModal = ({
         </Form.Item>
 
         <Form.Item
-          name="status"
+          name="Status"
           label="状态"
           rules={[{ required: true, message: '请选择状态' }]}
         >
@@ -116,7 +116,7 @@ const ContractFormModal = ({
         </Form.Item>
 
         <Form.Item
-          name="parentContractId"
+          name="ParentContractId"
           label="父合同"
         >
           <TreeSelect
@@ -131,21 +131,21 @@ const ContractFormModal = ({
         </Form.Item>
 
         <Form.Item
-          name="contractDate"
+          name="ContractDate"
           label="合同日期"
         >
           <DatePicker placeholder="请选择合同日期" style={{ width: '100%' }} />
         </Form.Item>
 
         <Form.Item
-          name="startDate"
+          name="StartDate"
           label="开始日期"
         >
           <DatePicker placeholder="请选择开始日期" style={{ width: '100%' }} />
         </Form.Item>
 
         <Form.Item
-          name="endDate"
+          name="EndDate"
           label="结束日期"
         >
           <DatePicker placeholder="请选择结束日期" style={{ width: '100%' }} />

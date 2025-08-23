@@ -221,13 +221,13 @@ router.get('/detail/:id', authenticateToken, async (req, res) => {
 
 // 创建付款记录
 router.post('/', authenticateToken, [
-  body('paymentNumber').optional().notEmpty().withMessage('付款编号不能为空'),
-  body('payableManagementId').isInt({ min: 1 }).withMessage('应付管理ID无效'),
-  body('currencyCode').notEmpty().withMessage('币种不能为空'),
-  body('paymentDescription').notEmpty().withMessage('付款说明不能为空'),
-  body('paymentAmount').isFloat({ min: 0 }).withMessage('付款金额必须大于0'),
-  body('paymentDate').notEmpty().withMessage('付款日期不能为空'),
-  body('notes').optional().isLength({ max: 500 }).withMessage('备注不能超过500个字符')
+  body('PaymentNumber').optional().notEmpty().withMessage('付款编号不能为空'),
+  body('PayableManagementId').isInt({ min: 1 }).withMessage('应付管理ID无效'),
+  body('CurrencyCode').notEmpty().withMessage('币种不能为空'),
+  body('PaymentDescription').notEmpty().withMessage('付款说明不能为空'),
+  body('PaymentAmount').isFloat({ min: 0 }).withMessage('付款金额必须大于0'),
+  body('PaymentDate').notEmpty().withMessage('付款日期不能为空'),
+  body('Notes').optional().isLength({ max: 500 }).withMessage('备注不能超过500个字符')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -240,18 +240,18 @@ router.post('/', authenticateToken, [
     }
 
     const { 
-      paymentNumber, payableManagementId, currencyCode, paymentDescription, 
-      paymentAmount, paymentDate, notes
+      PaymentNumber, PayableManagementId, CurrencyCode, PaymentDescription, 
+      PaymentAmount, PaymentDate, Notes
     } = req.body;
 
-    // 处理字段名大小写问题，支持前端传递的小写字段名
-    const finalPaymentNumber = paymentNumber || `PAY-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-    const finalPayableManagementId = payableManagementId;
-    const finalCurrencyCode = currencyCode;
-    const finalPaymentDescription = paymentDescription;
-    const finalPaymentAmount = paymentAmount;
-    const finalPaymentDate = paymentDate;
-    const finalNotes = notes;
+    // 处理字段名大小写问题，支持前端传递的大写字段名
+    const finalPaymentNumber = PaymentNumber || `PAY-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const finalPayableManagementId = PayableManagementId;
+    const finalCurrencyCode = CurrencyCode;
+    const finalPaymentDescription = PaymentDescription;
+    const finalPaymentAmount = PaymentAmount;
+    const finalPaymentDate = PaymentDate;
+    const finalNotes = Notes;
 
     // 检查应付管理记录是否存在
     const payables = await query(
@@ -299,7 +299,7 @@ router.post('/', authenticateToken, [
     // finalPaymentNumber 已经在上面声明了
     
     // 如果前端传入了付款编号，检查是否已存在（列不存在时跳过检查）
-    if (paymentNumber) {
+    if (PaymentNumber) {
       try {
         const existingPaymentNumbers = await query(
           'SELECT Id FROM PaymentRecords WHERE PaymentNumber = ? LIMIT 1',

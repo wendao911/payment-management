@@ -8,6 +8,7 @@ const router = express.Router();
 // 获取所有应付管理记录
 router.get('/', authenticateToken, async (req, res) => {
   try {
+    // 首先获取应付管理记录的汇总信息
     const payables = await query(`
       SELECT 
         pm.*,
@@ -20,20 +21,64 @@ router.get('/', authenticateToken, async (req, res) => {
         s.Email as SupplierEmail,
         cur.Name as CurrencyName,
         cur.Symbol as CurrencySymbol,
+        cur.ExchangeRate,
         COALESCE(SUM(pr.PaymentAmount), 0) as TotalPaidAmount,
-        (pm.PayableAmount - COALESCE(SUM(pr.PaymentAmount), 0)) as RemainingAmount
+        (pm.PayableAmount - COALESCE(SUM(pr.PaymentAmount), 0)) as RemainingAmount,
+        -- 计算USD等值
+        (pm.PayableAmount / cur.ExchangeRate) as PayableAmountUSD,
+        COALESCE(SUM(pr.PaymentAmount / pr_cur.ExchangeRate), 0) as TotalPaidAmountUSD,
+        ((pm.PayableAmount / cur.ExchangeRate) - COALESCE(SUM(pr.PaymentAmount / pr_cur.ExchangeRate), 0)) as RemainingAmountUSD,
+        -- 计算转换为应付管理记录币种的金额
+        COALESCE(SUM(
+          CASE 
+            WHEN pr.CurrencyCode = pm.CurrencyCode THEN pr.PaymentAmount
+            ELSE (pr.PaymentAmount / pr_cur.ExchangeRate) * cur.ExchangeRate
+          END
+        ), 0) as TotalPaidAmountConverted,
+        (pm.PayableAmount - COALESCE(SUM(
+          CASE 
+            WHEN pr.CurrencyCode = pm.CurrencyCode THEN pr.PaymentAmount
+            ELSE (pr.PaymentAmount / pr_cur.ExchangeRate) * cur.ExchangeRate
+          END
+        ), 0)) as RemainingAmountConverted
       FROM payablemanagement pm
       LEFT JOIN Contracts c ON pm.ContractId = c.Id
       LEFT JOIN Suppliers s ON pm.SupplierId = s.Id
       LEFT JOIN Currencies cur ON pm.CurrencyCode = cur.Code
       LEFT JOIN PaymentRecords pr ON pm.Id = pr.PayableManagementId
+      LEFT JOIN Currencies pr_cur ON pr.CurrencyCode = pr_cur.Code
       GROUP BY pm.Id
       ORDER BY pm.PaymentDueDate ASC, pm.Importance DESC, pm.Urgency DESC
     `);
+
+    // 获取所有付款记录的详细信息
+    const paymentRecords = await query(`
+      SELECT 
+        pr.*,
+        cur.Name as CurrencyName,
+        cur.Symbol as CurrencySymbol,
+        cur.ExchangeRate,
+        (pr.PaymentAmount / cur.ExchangeRate) as PaymentAmountUSD
+      FROM PaymentRecords pr
+      LEFT JOIN Currencies cur ON pr.CurrencyCode = cur.Code
+      ORDER BY pr.PaymentDate DESC
+    `);
+
+    // 将付款记录分组到对应的应付管理记录中
+    const payablesWithRecords = payables.map(payable => {
+      const relatedRecords = paymentRecords.filter(record => 
+        record.PayableManagementId === payable.Id
+      );
+      
+      return {
+        ...payable,
+        paymentRecords: relatedRecords
+      };
+    });
     
     res.json({
       success: true,
-      data: payables
+      data: payablesWithRecords
     });
   } catch (error) {
     console.error('获取应付管理列表错误:', error);
@@ -64,13 +109,32 @@ router.get('/search', authenticateToken, async (req, res) => {
         s.Email as SupplierEmail,
         cur.Name as CurrencyName,
         cur.Symbol as CurrencySymbol,
+        cur.ExchangeRate,
         COALESCE(SUM(pr.PaymentAmount), 0) as TotalPaidAmount,
-        (pm.PayableAmount - COALESCE(SUM(pr.PaymentAmount), 0)) as RemainingAmount
+        (pm.PayableAmount - COALESCE(SUM(pr.PaymentAmount), 0)) as RemainingAmount,
+        -- 计算USD等值
+        (pm.PayableAmount / cur.ExchangeRate) as PayableAmountUSD,
+        COALESCE(SUM(pr.PaymentAmount / pr_cur.ExchangeRate), 0) as TotalPaidAmountUSD,
+        ((pm.PayableAmount / cur.ExchangeRate) - COALESCE(SUM(pr.PaymentAmount / pr_cur.ExchangeRate), 0)) as RemainingAmountUSD,
+        -- 计算转换为应付管理记录币种的金额
+        COALESCE(SUM(
+          CASE 
+            WHEN pr.CurrencyCode = pm.CurrencyCode THEN pr.PaymentAmount
+            ELSE (pr.PaymentAmount / pr_cur.ExchangeRate) * cur.ExchangeRate
+          END
+        ), 0) as TotalPaidAmountConverted,
+        (pm.PayableAmount - COALESCE(SUM(
+          CASE 
+            WHEN pr.CurrencyCode = pm.CurrencyCode THEN pr.PaymentAmount
+            ELSE (pr.PaymentAmount / pr_cur.ExchangeRate) * cur.ExchangeRate
+          END
+        ), 0)) as RemainingAmountConverted
       FROM payablemanagement pm
       LEFT JOIN contracts c ON pm.ContractId = c.Id
       LEFT JOIN suppliers s ON pm.SupplierId = s.Id
       LEFT JOIN currencies cur ON pm.CurrencyCode = cur.Code
       LEFT JOIN paymentrecords pr ON pm.Id = pr.PayableManagementId
+      LEFT JOIN currencies pr_cur ON pr.CurrencyCode = pr_cur.Code
       WHERE 1=1
     `;
     const params = [];
@@ -123,11 +187,47 @@ router.get('/search', authenticateToken, async (req, res) => {
     sql += ` GROUP BY pm.Id ORDER BY pm.PaymentDueDate ASC, pm.Importance DESC, pm.Urgency DESC`;
     
     const payables = await query(sql, params);
-    
-    res.json({
-      success: true,
-      data: payables
-    });
+
+    // 获取这些应付管理记录对应的付款记录
+    if (payables.length > 0) {
+      const payableIds = payables.map(p => p.Id);
+      const placeholders = payableIds.map(() => '?').join(',');
+      
+      const paymentRecords = await query(`
+        SELECT 
+          pr.*,
+          cur.Name as CurrencyName,
+          cur.Symbol as CurrencySymbol,
+          cur.ExchangeRate,
+          (pr.PaymentAmount / cur.ExchangeRate) as PaymentAmountUSD
+        FROM PaymentRecords pr
+        LEFT JOIN Currencies cur ON pr.CurrencyCode = cur.Code
+        WHERE pr.PayableManagementId IN (${placeholders})
+        ORDER BY pr.PaymentDate DESC
+      `, payableIds);
+
+      // 将付款记录分组到对应的应付管理记录中
+      const payablesWithRecords = payables.map(payable => {
+        const relatedRecords = paymentRecords.filter(record => 
+          record.PayableManagementId === payable.Id
+        );
+        
+        return {
+          ...payable,
+          paymentRecords: relatedRecords
+        };
+      });
+
+      res.json({
+        success: true,
+        data: payablesWithRecords
+      });
+    } else {
+      res.json({
+        success: true,
+        data: []
+      });
+    }
   } catch (error) {
     console.error('搜索应付管理记录错误:', error);
     res.status(500).json({
@@ -154,7 +254,9 @@ router.get('/:id', authenticateToken, async (req, res) => {
         s.Phone as SupplierPhone,
         s.Email as SupplierEmail,
         cur.Name as CurrencyName,
-        cur.Symbol as CurrencySymbol
+        cur.Symbol as CurrencySymbol,
+        cur.ExchangeRate,
+        (pm.PayableAmount / cur.ExchangeRate) as PayableAmountUSD
       FROM payablemanagement pm
       LEFT JOIN contracts c ON pm.ContractId = c.Id
       LEFT JOIN suppliers s ON pm.SupplierId = s.Id
@@ -174,7 +276,9 @@ router.get('/:id', authenticateToken, async (req, res) => {
       SELECT 
         pr.*,
         cur.Name as CurrencyName,
-        cur.Symbol as CurrencySymbol
+        cur.Symbol as CurrencySymbol,
+        cur.ExchangeRate,
+        (pr.PaymentAmount / cur.ExchangeRate) as PaymentAmountUSD
       FROM paymentrecords pr
       LEFT JOIN currencies cur ON pr.CurrencyCode = cur.Code
       WHERE pr.PayableManagementId = ?
@@ -209,16 +313,16 @@ router.get('/:id', authenticateToken, async (req, res) => {
 
 // 创建应付管理记录
 router.post('/', authenticateToken, [
-  body('payableNumber').optional().notEmpty().withMessage('应付编号不能为空'),
-  body('contractId').isInt({ min: 1 }).withMessage('合同ID无效'),
-  body('supplierId').isInt({ min: 1 }).withMessage('供应商ID无效'),
-  body('payableAmount').isFloat({ min: 0 }).withMessage('应付金额必须大于0'),
-  body('currencyCode').notEmpty().withMessage('币种不能为空'),
-  body('paymentDueDate').notEmpty().withMessage('付款截止日期不能为空'),
-  body('importance').optional().isIn(['normal', 'important', 'very_important']).withMessage('重要程度无效'),
-  body('urgency').optional().isIn(['normal', 'urgent', 'very_urgent', 'overdue']).withMessage('紧急程度无效'),
-  body('description').optional().isLength({ max: 500 }).withMessage('应付说明不能超过500个字符'),
-  body('notes').optional().isLength({ max: 500 }).withMessage('备注不能超过500个字符')
+  body('PayableNumber').optional().notEmpty().withMessage('应付编号不能为空'),
+  body('ContractId').isInt({ min: 1 }).withMessage('合同ID无效'),
+  body('SupplierId').isInt({ min: 1 }).withMessage('供应商ID无效'),
+  body('PayableAmount').isFloat({ min: 0 }).withMessage('应付金额必须大于0'),
+  body('CurrencyCode').notEmpty().withMessage('币种不能为空'),
+  body('PaymentDueDate').notEmpty().withMessage('付款截止日期不能为空'),
+  body('Importance').optional().isIn(['normal', 'important', 'very_important']).withMessage('重要程度无效'),
+  body('Urgency').optional().isIn(['normal', 'urgent', 'very_urgent', 'overdue']).withMessage('紧急程度无效'),
+  body('Description').optional().isLength({ max: 500 }).withMessage('应付说明不能超过500个字符'),
+  body('Notes').optional().isLength({ max: 500 }).withMessage('备注不能超过500个字符')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -231,14 +335,14 @@ router.post('/', authenticateToken, [
     }
 
     const { 
-      contractId, supplierId, payableAmount, 
-      currencyCode, paymentDueDate, importance, urgency, description, notes
+      ContractId, SupplierId, PayableAmount, 
+      CurrencyCode, PaymentDueDate, Importance, Urgency, Description, Notes
     } = req.body;
 
     // 检查合同是否存在
     const contracts = await query(
       'SELECT Id, TotalAmount FROM contracts WHERE Id = ?',
-      [contractId]
+      [ContractId]
     );
     
     if (contracts.length === 0) {
@@ -251,7 +355,7 @@ router.post('/', authenticateToken, [
     // 检查供应商是否存在
     const suppliers = await query(
       'SELECT Id FROM suppliers WHERE Id = ?',
-      [supplierId]
+      [SupplierId]
     );
     
     if (suppliers.length === 0) {
@@ -264,7 +368,7 @@ router.post('/', authenticateToken, [
     // 检查合同和供应商是否匹配
     const contractSuppliers = await query(
       'SELECT Id FROM contracts WHERE Id = ? AND SupplierId = ?',
-      [contractId, supplierId]
+      [ContractId, SupplierId]
     );
     
     if (contractSuppliers.length === 0) {
@@ -277,7 +381,7 @@ router.post('/', authenticateToken, [
     // 检查币种是否存在
     const currencies = await query(
       'SELECT Code FROM currencies WHERE Code = ? AND IsActive = TRUE',
-      [currencyCode]
+      [CurrencyCode]
     );
     
     if (currencies.length === 0) {
@@ -288,10 +392,10 @@ router.post('/', authenticateToken, [
     }
 
     // 使用前端传入的应付编号，如果没有则自动生成
-    const payableNumber = req.body.payableNumber || `PAY-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const payableNumber = req.body.PayableNumber || `PAY-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     
     // 如果前端传入了应付编号，检查是否已存在
-    if (req.body.payableNumber) {
+    if (req.body.PayableNumber) {
       const existingPayableNumbers = await query(
         'SELECT Id FROM payablemanagement WHERE PayableNumber = ?',
         [payableNumber]
@@ -313,8 +417,8 @@ router.post('/', authenticateToken, [
           ContractId, SupplierId, PayableNumber, PayableAmount, CurrencyCode,
           PaymentDueDate, Importance, Urgency, Description, Notes
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `, [contractId, supplierId, payableNumber, payableAmount, currencyCode, 
-          paymentDueDate, importance || 'normal', urgency || 'normal', description || null, notes || null]);
+      `, [ContractId, SupplierId, payableNumber, PayableAmount, CurrencyCode, 
+          PaymentDueDate, Importance || 'normal', Urgency || 'normal', Description || null, Notes || null]);
       
       const formId = insertResult.insertId;
       
@@ -351,14 +455,14 @@ router.post('/', authenticateToken, [
 
 // 更新应付管理记录
 router.put('/:id', authenticateToken, [
-  body('payableNumber').optional().notEmpty().withMessage('应付编号不能为空'),
-  body('payableAmount').optional().isFloat({ min: 0 }).withMessage('应付金额必须大于0'),
-  body('currencyCode').optional().notEmpty().withMessage('币种不能为空'),
-  body('importance').optional().isIn(['normal', 'important', 'very_important']).withMessage('重要程度无效'),
-  body('urgency').optional().isIn(['normal', 'urgent', 'very_urgent', 'overdue']).withMessage('紧急程度无效'),
-  body('status').optional().isIn(['pending', 'partial', 'completed', 'overdue']).withMessage('状态无效'),
-  body('description').optional().isLength({ max: 500 }).withMessage('应付说明不能超过500个字符'),
-  body('notes').optional().isLength({ max: 500 }).withMessage('备注不能超过500个字符')
+  body('PayableNumber').optional().notEmpty().withMessage('应付编号不能为空'),
+  body('PayableAmount').optional().isFloat({ min: 0 }).withMessage('应付金额必须大于0'),
+  body('CurrencyCode').optional().notEmpty().withMessage('币种不能为空'),
+  body('Importance').optional().isIn(['normal', 'important', 'very_important']).withMessage('重要程度无效'),
+  body('Urgency').optional().isIn(['normal', 'urgent', 'very_urgent', 'overdue']).withMessage('紧急程度无效'),
+  body('Status').optional().isIn(['pending', 'partial', 'completed', 'overdue']).withMessage('状态无效'),
+  body('Description').optional().isLength({ max: 500 }).withMessage('应付说明不能超过500个字符'),
+  body('Notes').optional().isLength({ max: 500 }).withMessage('备注不能超过500个字符')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -387,10 +491,10 @@ router.put('/:id', authenticateToken, [
     }
 
     // 如果更新币种，检查币种是否存在
-    if (updateData.currencyCode) {
+    if (updateData.CurrencyCode) {
       const currencies = await query(
         'SELECT Code FROM currencies WHERE Code = ? AND IsActive = TRUE',
-        [updateData.currencyCode]
+        [updateData.CurrencyCode]
       );
       
       if (currencies.length === 0) {
@@ -402,10 +506,10 @@ router.put('/:id', authenticateToken, [
     }
     
     // 如果更新应付编号，检查是否与其他记录重复
-    if (updateData.payableNumber) {
+    if (updateData.PayableNumber) {
       const existingPayableNumbers = await query(
         'SELECT Id FROM payablemanagement WHERE PayableNumber = ? AND Id != ?',
-        [updateData.payableNumber, id]
+        [updateData.PayableNumber, id]
       );
       
       if (existingPayableNumbers.length > 0) {

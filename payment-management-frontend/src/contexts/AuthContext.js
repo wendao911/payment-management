@@ -29,10 +29,10 @@ export const AuthProvider = ({ children }) => {
         const userData = JSON.parse(storedUser);
         setToken(storedToken);
         setUser(userData);
-        
+
         // 设置axios默认headers
         axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
-        
+
         // 验证token是否有效
         validateToken(storedToken);
       } catch (error) {
@@ -64,26 +64,25 @@ export const AuthProvider = ({ children }) => {
   const login = async (username, password) => {
     try {
       const base = getBackendURL();
-      console.log('登录使用的API地址:', `${base}/auth/login`);
       const response = await axios.post(`${base}/auth/login`, {
-        username,
-        password
+        Username: username,
+        Password: password
       });
 
       if (response.data.success) {
         const { token: newToken, user: userData } = response.data.data;
-        
+
         // 保存到localStorage
         localStorage.setItem('token', newToken);
         localStorage.setItem('user', JSON.stringify(userData));
-        
+
         // 设置状态
         setToken(newToken);
         setUser(userData);
-        
+
         // 设置axios默认headers
         axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
-        
+
         return { success: true };
       }
     } catch (error) {
@@ -99,17 +98,17 @@ export const AuthProvider = ({ children }) => {
     // 清除localStorage
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    
+
     // 清除状态
     setToken(null);
     setUser(null);
-    
+
     // 清除axios默认headers
     delete axios.defaults.headers.common['Authorization'];
-    
+
     // 设置loading为false，避免白屏
     setLoading(false);
-    
+
     // 调用后端登出接口（可选）
     if (token) {
       axios.post(`${getBackendURL()}/auth/logout`).catch(console.error);

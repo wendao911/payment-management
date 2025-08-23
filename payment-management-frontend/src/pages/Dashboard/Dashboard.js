@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Row, Col, Divider, Typography } from 'antd';
-import dayjs from '../../utils/dayjs';
 import PaymentWarningSummary from '../../components/PaymentWarningSummary';
 import BankAccountsSummary from './components/BankAccountsSummary';
 import PayablesSummary from './components/PayablesSummary';
@@ -47,7 +46,7 @@ const Dashboard = () => {
   return (
     <div>
       <Title level={1} className="text-2xl font-bold mb-6">系统概览</Title>
-      
+
       {/* 付款预警统计 */}
       <PaymentWarningSummary onViewDetails={(type) => {
         // 跳转到付款管理页面并应用相应的过滤

@@ -114,13 +114,21 @@ const Payments = () => {
 
   const handleViewDetail = async (record) => {
     try {
-      const recordId = record.Id || record.id;
-      const response = await apiClient.get(`/payment/${recordId}`);
-      if (response.success && response.data) {
-        setCurrentPayable(response.data);
+      // 优先使用列表中的数据，减少API调用
+      if (record.paymentRecords) {
+        // 如果列表数据已包含paymentRecords，直接使用
+        setCurrentPayable(record);
         setDetailModalVisible(true);
       } else {
-        message.error(response.message || '获取详情失败');
+        // 如果没有paymentRecords数据，才调用API获取详情
+        const recordId = record.Id || record.id;
+        const response = await apiClient.get(`/payment/${recordId}`);
+        if (response.success && response.data) {
+          setCurrentPayable(response.data);
+          setDetailModalVisible(true);
+        } else {
+          message.error(response.message || '获取详情失败');
+        }
       }
     } catch (error) {
       console.error('Error fetching payable detail:', error);

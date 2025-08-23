@@ -37,12 +37,12 @@ const SearchForm = ({
     >
       <Row gutter={[16, 8]} style={{ width: '100%' }}>
         <Col xs={24} sm={12} md={6}>
-          <Form.Item name="payableNumber" label="应付编号">
+          <Form.Item name="PayableNumber" label="应付编号">
             <Input placeholder="请输入应付编号" allowClear />
           </Form.Item>
         </Col>
         <Col xs={24} sm={12} md={6}>
-          <Form.Item name="supplierId" label="供应商">
+          <Form.Item name="SupplierId" label="供应商">
             <Select
               placeholder="请选择供应商"
               allowClear
@@ -59,7 +59,7 @@ const SearchForm = ({
           </Form.Item>
         </Col>
         <Col xs={24} sm={12} md={7}>
-          <Form.Item name="contractId" label="合同" >
+          <Form.Item name="ContractId" label="合同" >
             <TreeSelect
               placeholder="请选择合同（支持搜索编号/名称）"
               treeData={contractTreeData}
@@ -73,7 +73,7 @@ const SearchForm = ({
           </Form.Item>
         </Col>
         <Col xs={24} sm={12} md={6}>
-          <Form.Item name="status" label="状态">
+          <Form.Item name="Status" label="状态">
             <Select placeholder="请选择状态" allowClear>
               <Option value="pending">待付款</Option>
               <Option value="partial">部分付款</Option>
@@ -83,7 +83,7 @@ const SearchForm = ({
           </Form.Item>
         </Col>
         <Col xs={24} sm={12} md={6}>
-          <Form.Item name="importance" label="重要程度">
+          <Form.Item name="Importance" label="重要程度">
             <Select placeholder="请选择重要程度" allowClear>
               <Option value="normal">一般</Option>
               <Option value="important">重要</Option>
@@ -92,7 +92,7 @@ const SearchForm = ({
           </Form.Item>
         </Col>
         <Col xs={24} sm={12} md={6}>
-          <Form.Item name="urgency" label="紧急程度">
+          <Form.Item name="Urgency" label="紧急程度">
             <Select placeholder="请选择紧急程度" allowClear>
               <Option value="normal">一般</Option>
               <Option value="urgent">紧急</Option>
@@ -102,7 +102,7 @@ const SearchForm = ({
           </Form.Item>
         </Col>
         <Col xs={24} sm={12} md={8}>
-          <Form.Item name="paymentDueDateRange" label="付款到期日" style={{ whiteSpace: 'nowrap', marginBottom: 8 }}>
+          <Form.Item name="PaymentDueDateRange" label="付款到期日" style={{ whiteSpace: 'nowrap', marginBottom: 8 }}>
             <RangePicker placeholder={['开始日期', '结束日期']} style={{ width: '100%' }} />
           </Form.Item>
         </Col>

@@ -28,17 +28,17 @@ const SearchForm = ({ banks, currencies, onSearch, onReset }) => {
       >
         <Row gutter={[16, 8]} style={{ width: '100%' }}>
           <Col xs={24} sm={12} md={6}>
-            <Form.Item name="accountNumber" label="账户号码">
+            <Form.Item name="AccountNumber" label="账户号码">
               <Input placeholder="请输入账户号码" allowClear />
             </Form.Item>
           </Col>
           <Col xs={24} sm={12} md={6}>
-            <Form.Item name="accountName" label="账户名称">
+            <Form.Item name="AccountName" label="账户名称">
               <Input placeholder="请输入账户名称" allowClear />
             </Form.Item>
           </Col>
           <Col xs={24} sm={12} md={6}>
-            <Form.Item name="bankId" label="所属银行">
+            <Form.Item name="BankId" label="所属银行">
               <Select placeholder="请选择银行" allowClear>
                 {banks.map(bank => (
                   <Option key={bank.Id} value={bank.Id}>
@@ -49,7 +49,7 @@ const SearchForm = ({ banks, currencies, onSearch, onReset }) => {
             </Form.Item>
           </Col>
           <Col xs={24} sm={12} md={6}>
-            <Form.Item name="accountType" label="账户类型">
+            <Form.Item name="AccountType" label="账户类型">
               <Select placeholder="请选择账户类型" allowClear>
                 <Option value="Checking">活期账户</Option>
                 <Option value="Savings">储蓄账户</Option>
@@ -59,7 +59,7 @@ const SearchForm = ({ banks, currencies, onSearch, onReset }) => {
             </Form.Item>
           </Col>
           <Col xs={24} sm={12} md={6}>
-            <Form.Item name="currencyCode" label="币种">
+            <Form.Item name="CurrencyCode" label="币种">
               <Select placeholder="请选择币种" allowClear showSearch optionFilterProp="children">
                 {currencies.map(currency => (
                   <Option key={currency.Code} value={currency.Code}>

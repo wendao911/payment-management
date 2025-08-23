@@ -55,47 +55,50 @@ const PayableModal = ({
         // 优先使用后端返回的完整数据，兼容前端现有数据结构
         const payableAmount = editingPayable.PayableAmount || editingPayable.payableAmount;
         const numericAmount = payableAmount ? parseFloat(payableAmount) : 0;
-        
+
         form.setFieldsValue({
-          payableNumber: editingPayable.PayableNumber || editingPayable.payableNumber || '',
-          contractId: editingPayable.ContractId || editingPayable.contract?.Id || editingPayable.contractId,
-          supplierId: editingPayable.SupplierId || editingPayable.supplier?.Id || editingPayable.supplierId,
-          payableAmount: numericAmount,
-          currencyCode: editingPayable.CurrencyCode || editingPayable.currencyCode || 'USD',
-          paymentDueDate: editingPayable.PaymentDueDate ? dayjs(editingPayable.PaymentDueDate) : undefined,
-          importance: editingPayable.Importance || editingPayable.importance || 'normal',
-          urgency: editingPayable.Urgency || editingPayable.urgency || 'normal',
-          description: editingPayable.Description || editingPayable.description || '',
-          notes: editingPayable.Notes || editingPayable.notes || '',
+          PayableNumber: editingPayable.PayableNumber || editingPayable.payableNumber || '',
+          ContractId: editingPayable.ContractId || editingPayable.contract?.Id || editingPayable.contractId,
+          SupplierId: editingPayable.SupplierId || editingPayable.supplier?.Id || editingPayable.supplierId,
+          PayableAmount: numericAmount,
+          CurrencyCode: editingPayable.CurrencyCode || editingPayable.currencyCode || 'USD',
+          PaymentDueDate: editingPayable.PaymentDueDate ? dayjs(editingPayable.PaymentDueDate) : undefined,
+          Importance: editingPayable.Importance || editingPayable.importance || 'normal',
+          Urgency: editingPayable.Urgency || editingPayable.urgency || 'normal',
+          Description: editingPayable.Description || editingPayable.description || '',
+          Notes: editingPayable.Notes || editingPayable.notes || '',
         });
-        
+
         // 调试日志
         console.log('Setting form values for editing:', {
-          payableNumber: editingPayable.PayableNumber || editingPayable.payableNumber,
-          contractId: editingPayable.ContractId || editingPayable.contract?.Id,
-          supplierId: editingPayable.SupplierId || editingPayable.supplier?.Id,
-          payableAmount: {
+          PayableNumber: editingPayable.PayableNumber || editingPayable.payableNumber,
+          ContractId: editingPayable.ContractId || editingPayable.contract?.Id,
+          SupplierId: editingPayable.SupplierId || editingPayable.supplier?.Id,
+          PayableAmount: {
             original: editingPayable.PayableAmount || editingPayable.payableAmount,
             type: typeof (editingPayable.PayableAmount || editingPayable.payableAmount),
             converted: numericAmount
           },
-          currencyCode: editingPayable.CurrencyCode || editingPayable.currencyCode,
-          paymentDueDate: editingPayable.PaymentDueDate,
-          importance: editingPayable.Importance || editingPayable.importance,
-          urgency: editingPayable.Urgency || editingPayable.urgency,
-          description: editingPayable.Description || editingPayable.description,
-          notes: editingPayable.Notes || editingPayable.notes,
+          CurrencyCode: editingPayable.CurrencyCode || editingPayable.currencyCode,
+          PaymentDueDate: editingPayable.PaymentDueDate,
+          Importance: editingPayable.Importance || editingPayable.importance,
+          Urgency: editingPayable.Urgency || editingPayable.urgency,
+          Description: editingPayable.Description || editingPayable.description,
+          Notes: editingPayable.Notes || editingPayable.notes,
         });
-        
+
         // 初始化本地附件状态
         setLocalAttachments(editingPayable?.attachments || []);
       } else {
-        // 新增模式：重置表单
+        // 新增模式：重置表单并设置默认值
         form.resetFields();
         form.setFieldsValue({
-          currencyCode: 'USD', // 默认选择美元
+          CurrencyCode: 'USD', // 默认选择美元
+          Importance: 'normal', // 默认重要程度
+          Urgency: 'normal', // 默认紧急程度
+          PaymentDueDate: dayjs(), // 默认付款截止日期为今天
         });
-        
+
         // 重置本地附件状态
         setLocalAttachments([]);
       }
@@ -105,21 +108,26 @@ const PayableModal = ({
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
-      
+
       // 数据类型转换和验证
       const submitData = {
         ...values,
-        payableNumber: values.payableNumber,
-        contractId: parseInt(values.contractId),
-        supplierId: parseInt(values.supplierId),
-        payableAmount: parseFloat(values.payableAmount) || 0,
-        paymentDueDate: values.paymentDueDate.format('YYYY-MM-DD')
+        PayableNumber: values.PayableNumber,
+        ContractId: parseInt(values.ContractId),
+        SupplierId: parseInt(values.SupplierId),
+        PayableAmount: parseFloat(values.PayableAmount) || 0,
+        PaymentDueDate: values.PaymentDueDate.format('YYYY-MM-DD')
       };
 
       console.log('Submitting form data:', submitData);
-      const result = await onSubmit(submitData);
+      await onSubmit(submitData);
     } catch (error) {
       console.error('Form validation failed:', error);
+      // 显示具体的验证错误信息
+      if (error.errorFields && error.errorFields.length > 0) {
+        const errorMessages = error.errorFields.map(field => field.errors.join(', ')).join('\n');
+        console.error('Validation errors:', errorMessages);
+      }
     }
   };
 
@@ -146,7 +154,7 @@ const PayableModal = ({
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
-              name="payableNumber"
+              name="PayableNumber"
               label="应付编号"
               rules={[{ required: true, message: '请输入应付编号' }]}
             >
@@ -155,7 +163,7 @@ const PayableModal = ({
           </Col>
           <Col span={12}>
             <Form.Item
-              name="description"
+              name="Description"
               label="应付说明"
               rules={[{ required: true, message: '请输入应付说明' }]}
             >
@@ -167,7 +175,7 @@ const PayableModal = ({
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
-              name="contractId"
+              name="ContractId"
               label="合同"
               rules={[{ required: true, message: '请选择合同' }]}
             >
@@ -200,12 +208,12 @@ const PayableModal = ({
                     const selectedContract = findContractById(contracts, value);
                     if (selectedContract && selectedContract.SupplierId) {
                       console.log('Auto-setting supplier:', selectedContract.SupplierId);
-                      form.setFieldsValue({ supplierId: selectedContract.SupplierId });
+                      form.setFieldsValue({ SupplierId: selectedContract.SupplierId });
                     }
                   } else {
                     // 当合同被清除时，也清除供应商
                     console.log('Contract cleared, clearing supplier');
-                    form.setFieldsValue({ supplierId: undefined });
+                    form.setFieldsValue({ SupplierId: undefined });
                   }
                 }}
               />
@@ -216,7 +224,7 @@ const PayableModal = ({
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
-              name="supplierId"
+              name="SupplierId"
               label="供应商"
               rules={[{ required: true, message: '请选择供应商' }]}
             >
@@ -232,7 +240,7 @@ const PayableModal = ({
                   console.log('Supplier selected:', value);
                   console.log('Form values after selection:', form.getFieldsValue());
                 }}
-                disabled={form.getFieldValue('contractId') && findContractById(contracts, form.getFieldValue('contractId'))?.SupplierId}
+                disabled={form.getFieldValue('ContractId') && findContractById(contracts, form.getFieldValue('ContractId'))?.SupplierId}
               >
                 {suppliers.map(supplier => (
                   <Option key={supplier.Id} value={supplier.Id}>
@@ -244,7 +252,7 @@ const PayableModal = ({
           </Col>
           <Col span={12}>
             <Form.Item
-              name="currencyCode"
+              name="CurrencyCode"
               label="币种"
               rules={[{ required: true, message: '请选择币种' }]}
             >
@@ -262,11 +270,11 @@ const PayableModal = ({
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
-              name="payableAmount"
+              name="PayableAmount"
               label="应付金额"
               rules={[
                 { required: true, message: '请输入应付金额' },
-                { 
+                {
                   validator: (_, value) => {
                     if (value === null || value === undefined || value === '') {
                       return Promise.reject(new Error('请输入应付金额'));
@@ -292,7 +300,7 @@ const PayableModal = ({
           </Col>
           <Col span={12}>
             <Form.Item
-              name="urgency"
+              name="Urgency"
               label="紧急程度"
             >
               <Select placeholder="请选择紧急程度">
@@ -306,7 +314,7 @@ const PayableModal = ({
         </Row>
 
         <Form.Item
-          name="paymentDueDate"
+          name="PaymentDueDate"
           label="付款截止日期"
           rules={[{ required: true, message: '请选择付款截止日期' }]}
         >
@@ -314,7 +322,7 @@ const PayableModal = ({
         </Form.Item>
 
         <Form.Item
-          name="importance"
+          name="Importance"
           label="重要程度"
         >
           <Select placeholder="请选择重要程度">
@@ -325,7 +333,7 @@ const PayableModal = ({
         </Form.Item>
 
         <Form.Item
-          name="notes"
+          name="Notes"
           label="备注"
           rules={[{ max: 500, message: '备注不能超过500个字符' }]}
         >
@@ -355,8 +363,8 @@ const PayableModal = ({
             <Button onClick={handleCancel}>
               取消
             </Button>
-            <Button 
-              type="primary" 
+            <Button
+              type="primary"
               htmlType="submit"
               loading={loading}
             >

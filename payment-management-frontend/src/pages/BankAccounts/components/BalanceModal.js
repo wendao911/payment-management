@@ -20,17 +20,17 @@ const BalanceModal = ({
   useEffect(() => {
     if (visible && editingBalance) {
       form.setFieldsValue({
-        bankAccountId: editingBalance.BankAccountId,
-        balance: editingBalance.Balance,
-        balanceStatus: editingBalance.BalanceStatus,
-        notes: editingBalance.Notes || ''
+        BankAccountId: editingBalance.BankAccountId,
+        Balance: editingBalance.Balance,
+        BalanceStatus: editingBalance.BalanceStatus,
+        Notes: editingBalance.Notes || ''
       });
     } else if (visible && !editingBalance && currentAccount) {
       form.resetFields();
       form.setFieldsValue({
-        bankAccountId: currentAccount.Id,
-        balanceStatus: 'Available',
-        notes: ''
+        BankAccountId: currentAccount.Id,
+        BalanceStatus: 'Available',
+        Notes: ''
       });
     }
   }, [visible, editingBalance, currentAccount, form]);
@@ -82,7 +82,7 @@ const BalanceModal = ({
         }}
       >
         <Form.Item
-          name="bankAccountId"
+          name="BankAccountId"
           hidden
         >
           <Input />
@@ -91,7 +91,7 @@ const BalanceModal = ({
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
-              name="balance"
+              name="Balance"
               label="账户金额"
               rules={[
                 { required: true, message: '请输入账户金额' },
@@ -119,7 +119,7 @@ const BalanceModal = ({
           </Col>
           <Col span={12}>
             <Form.Item
-              name="balanceStatus"
+              name="BalanceStatus"
               label="金额状态"
               rules={[{ required: true, message: '请选择金额状态' }]}
             >
@@ -134,7 +134,7 @@ const BalanceModal = ({
         </Row>
 
         <Form.Item
-          name="notes"
+          name="Notes"
           label="备注信息"
           rules={[
             { max: 500, message: '备注信息不能超过500个字符' }

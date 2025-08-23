@@ -17,7 +17,8 @@ const Login = () => {
   const onFinish = async (values) => {
     setLoading(true);
     try {
-      const result = await login(values.username, values.password);
+      console.log('登录表单提交的值:', values); // 添加调试日志
+      const result = await login(values.Username, values.Password);
       if (result.success) {
         const from = location.state?.from?.pathname || '/dashboard';
         message.success('登录成功！');

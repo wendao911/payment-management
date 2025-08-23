@@ -15,7 +15,6 @@ import dayjs from '../../../utils/dayjs';
 import AttachmentUpload from '../../../components/common/AttachmentUpload';
 
 const { Option } = Select;
-const { TextArea } = Input;
 
 const PaymentRecordModal = ({
   visible,
@@ -36,25 +35,25 @@ const PaymentRecordModal = ({
       if (editingRecord && isEdit) {
         // 编辑模式：设置现有数据
         form.setFieldsValue({
-          paymentNumber: editingRecord.PaymentNumber || editingRecord.paymentNumber || '',
-          currencyCode: editingRecord.CurrencyCode || editingRecord.currencyCode || 'USD',
-          paymentDescription: editingRecord.PaymentDescription || editingRecord.paymentDescription || '',
-          paymentAmount: editingRecord.PaymentAmount || editingRecord.paymentAmount || 0,
-          paymentDate: editingRecord.PaymentDate ? dayjs(editingRecord.PaymentDate) :
+          PaymentNumber: editingRecord.PaymentNumber || editingRecord.paymentNumber || '',
+          CurrencyCode: editingRecord.CurrencyCode || editingRecord.currencyCode || 'USD',
+          PaymentDescription: editingRecord.PaymentDescription || editingRecord.paymentDescription || '',
+          PaymentAmount: editingRecord.PaymentAmount || editingRecord.paymentAmount || 0,
+          PaymentDate: editingRecord.PaymentDate ? dayjs(editingRecord.PaymentDate) :
             (editingRecord.paymentDate ? dayjs(editingRecord.paymentDate) : null),
-          notes: editingRecord.Notes || editingRecord.notes || '',
+          Notes: editingRecord.Notes || editingRecord.notes || '',
         });
-        
+
         // 初始化本地附件状态
         setLocalAttachments(editingRecord?.attachments || []);
       } else {
         // 新增模式：重置表单
         form.resetFields();
         form.setFieldsValue({
-          currencyCode: 'USD',
-          paymentDate: dayjs()
+          CurrencyCode: 'USD',
+          PaymentDate: dayjs()
         });
-        
+
         // 重置本地附件状态
         setLocalAttachments([]);
       }
@@ -64,17 +63,17 @@ const PaymentRecordModal = ({
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
-      
+
       const submitData = {
-        paymentNumber: values.paymentNumber,
-        currencyCode: values.currencyCode,
-        paymentDescription: values.paymentDescription,
-        paymentAmount: parseFloat(values.paymentAmount),
-        paymentDate: values.paymentDate ? dayjs(values.paymentDate).format('YYYY-MM-DD') : undefined,
-        notes: values.notes
+        PaymentNumber: values.PaymentNumber,
+        CurrencyCode: values.CurrencyCode,
+        PaymentDescription: values.PaymentDescription,
+        PaymentAmount: parseFloat(values.PaymentAmount),
+        PaymentDate: values.PaymentDate ? dayjs(values.PaymentDate).format('YYYY-MM-DD') : undefined,
+        Notes: values.Notes
       };
 
-      const result = await onSubmit(submitData);
+      await onSubmit(submitData);
     } catch (error) {
       console.error('Form validation failed:', error);
     }
@@ -118,7 +117,7 @@ const PaymentRecordModal = ({
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
-              name="paymentNumber"
+              name="PaymentNumber"
               label="付款编号"
               rules={[
                 { required: true, message: '请输入付款编号' },
@@ -135,7 +134,7 @@ const PaymentRecordModal = ({
           </Col>
           <Col span={12}>
             <Form.Item
-              name="currencyCode"
+              name="CurrencyCode"
               label="币种"
               rules={[{ required: true, message: '请选择币种' }]}
             >
@@ -162,7 +161,7 @@ const PaymentRecordModal = ({
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
-              name="paymentDescription"
+              name="PaymentDescription"
               label="付款说明"
               rules={[
                 { required: true, message: '请输入付款说明' },
@@ -180,7 +179,7 @@ const PaymentRecordModal = ({
           </Col>
           <Col span={12}>
             <Form.Item
-              name="paymentAmount"
+              name="PaymentAmount"
               label="付款金额"
               rules={[
                 { required: true, message: '请输入付款金额' },
@@ -213,7 +212,7 @@ const PaymentRecordModal = ({
                 parser={value => value.replace(/(,*)/g, '')}
                 addonAfter={
                   <span style={{ color: '#666' }}>
-                    {form.getFieldValue('currencyCode') || 'USD'}
+                    {form.getFieldValue('CurrencyCode') || 'USD'}
                   </span>
                 }
               />
@@ -224,7 +223,7 @@ const PaymentRecordModal = ({
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
-              name="paymentDate"
+              name="PaymentDate"
               label="付款日期"
               rules={[
                 { required: true, message: '请选择付款日期' },
@@ -255,7 +254,7 @@ const PaymentRecordModal = ({
           </Col>
           <Col span={12}>
             <Form.Item
-              name="notes"
+              name="Notes"
               label="备注信息"
               rules={[
                 { max: 500, message: '备注信息不能超过500个字符' }

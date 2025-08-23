@@ -125,34 +125,60 @@ export const getPayableColumns = (currencies, onViewDetail, onEdit, onAddPayment
     title: '应付金额',
     dataIndex: 'PayableAmount',
     key: 'PayableAmount',
-    width: 120,
-    render: (value, record) => (
-      <span>
-        {record.CurrencySymbol || ''}{value ? value.toLocaleString() : '0'}
-      </span>
-    ),
+    width: 150,
+    render: (value, record) => {
+      const usdAmount = parseFloat(value || 0);
+      return (
+        <div style={{ fontWeight: 'bold' }}>
+          {record.CurrencySymbol || ''}{usdAmount.toFixed(2)}
+        </div>
+      );
+    },
+  },
+  {
+    title: '应付金额（USD）',
+    dataIndex: 'PayableAmountUSD',
+    key: 'PayableAmountUSD',
+    width: 150,
+    render: (value, record) => {
+      const usdAmount = parseFloat(value || 0);
+      return (
+        <div style={{ fontWeight: 'bold' }}>
+          ${usdAmount.toFixed(2)}
+        </div>
+      );
+    },
   },
   {
     title: '已付金额',
-    dataIndex: 'TotalPaidAmount',
-    key: 'TotalPaidAmount',
-    width: 120,
-    render: (value, record) => (
-      <span>
-        {record.CurrencySymbol || ''}{parseFloat(value || 0).toLocaleString()}
-      </span>
-    ),
+    dataIndex: 'TotalPaidAmountUSD',
+    key: 'TotalPaidAmountUSD',
+    width: 150,
+    render: (value, record) => {
+      const usdAmount = parseFloat(value || 0);
+      return (
+        <div style={{ fontWeight: 'bold', color: '#52c41a' }}>
+          ${usdAmount.toFixed(2)}
+        </div>
+      );
+    },
   },
   {
     title: '剩余金额',
-    dataIndex: 'RemainingAmount',
-    key: 'RemainingAmount',
-    width: 120,
-    render: (value, record) => (
-      <span style={{ color: parseFloat(value) > 0 ? '#cf1322' : '#3f8600' }}>
-        {record.CurrencySymbol || ''}{parseFloat(value || 0).toLocaleString()}
-      </span>
-    ),
+    dataIndex: 'RemainingAmountUSD',
+    key: 'RemainingAmountUSD',
+    width: 150,
+    render: (value, record) => {
+      const usdAmount = parseFloat(value || 0);
+      return (
+        <div style={{ 
+          fontWeight: 'bold', 
+          color: usdAmount > 0 ? '#cf1322' : '#3f8600' 
+        }}>
+          ${usdAmount.toFixed(2)}
+        </div>
+      );
+    },
   },
   {
     title: '付款截止日期',
@@ -354,6 +380,26 @@ export const getPaymentRecordColumns = (currencies, onViewDetail, onEdit, onDele
         <span>{value || pr.currencyCode || '-'}</span>
       );
     }
+  },
+  {
+    title: '金额(USD)',
+    dataIndex: 'PaymentAmountUSD',
+    key: 'PaymentAmountUSD',
+    width: 140,
+    align: 'right',
+    render: (value, pr) => {
+      const usdAmount = parseFloat(value || pr.PaymentAmountUSD || 0);
+      return (
+        <span style={{
+          fontWeight: 'bold',
+          color: '#1890ff',
+          fontSize: '14px',
+          fontFamily: 'Monaco, Menlo, Ubuntu Mono, monospace'
+        }}>
+          ${usdAmount.toFixed(2)}
+        </span>
+      );
+    },
   },
   {
     title: '付款日期',

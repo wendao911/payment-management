@@ -26,13 +26,13 @@ const LoginForm = ({ onFinish, loading }) => {
         </div>
 
         <Form
-          name="login"
+          name="Login"
           onFinish={onFinish}
           autoComplete="off"
           size="large"
         >
           <Form.Item
-            name="username"
+            name="Username"
             rules={[
               { required: true, message: '请输入用户名!' },
               { min: 3, message: '用户名至少3个字符!' }
@@ -46,7 +46,7 @@ const LoginForm = ({ onFinish, loading }) => {
           </Form.Item>
 
           <Form.Item
-            name="password"
+            name="Password"
             rules={[
               { required: true, message: '请输入密码!' },
               { min: 6, message: '密码至少6个字符!' }

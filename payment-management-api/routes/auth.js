@@ -7,8 +7,8 @@ const router = express.Router();
 
 // 用户登录
 router.post('/login', [
-  body('username').notEmpty().withMessage('用户名不能为空'),
-  body('password').notEmpty().withMessage('密码不能为空')
+  body('Username').notEmpty().withMessage('用户名不能为空'),
+  body('Password').notEmpty().withMessage('密码不能为空')
 ], async (req, res) => {
   try {
     // 添加调试日志
@@ -31,17 +31,17 @@ router.post('/login', [
       });
     }
 
-    const { username, password } = req.body;
-    console.log('尝试登录用户:', username);
+    const { Username, Password: inputPassword } = req.body;
+    console.log('尝试登录用户:', Username);
 
     // 查找用户
     const users = await query(
       'SELECT * FROM Users WHERE Username = ? AND IsActive = TRUE',
-      [username]
+      [Username]
     );
 
     if (users.length === 0) {
-      console.log('用户不存在或已被禁用:', username);
+      console.log('用户不存在或已被禁用:', Username);
       return res.status(401).json({
         success: false,
         message: '用户名或密码错误'
@@ -52,16 +52,16 @@ router.post('/login', [
     console.log('用户找到:', { id: user.Id, username: user.Username, role: user.Role });
 
     // 验证密码
-    const isValidPassword = await bcrypt.compare(password, user.Password);
+    const isValidPassword = await bcrypt.compare(inputPassword, user.Password);
     if (!isValidPassword) {
-      console.log('密码验证失败:', username);
+      console.log('密码验证失败:', Username);
       return res.status(401).json({
         success: false,
         message: '用户名或密码错误'
       });
     }
 
-    console.log('密码验证成功:', username);
+    console.log('密码验证成功:', Username);
 
     // 生成JWT token
     const token = generateToken(user);
@@ -73,9 +73,9 @@ router.post('/login', [
     );
 
     // 返回用户信息和token（不包含密码）
-    const { Password, ...userInfo } = user;
+    const { Password: userPassword, ...userInfo } = user;
     
-    console.log('登录成功:', { username, userId: user.Id });
+    console.log('登录成功:', { username: Username, userId: user.Id });
     
     res.json({
       success: true,
@@ -96,10 +96,10 @@ router.post('/login', [
 
 // 用户注册
 router.post('/register', [
-  body('username').isLength({ min: 3, max: 50 }).withMessage('用户名长度必须在3-50个字符之间'),
-  body('password').isLength({ min: 6 }).withMessage('密码长度至少6个字符'),
-  body('email').isEmail().withMessage('邮箱格式不正确'),
-  body('role').optional().isIn(['user', 'manager']).withMessage('角色只能是user或manager')
+  body('Username').isLength({ min: 3, max: 50 }).withMessage('用户名长度必须在3-50个字符之间'),
+  body('Password').isLength({ min: 6 }).withMessage('密码长度至少6个字符'),
+  body('Email').isEmail().withMessage('邮箱格式不正确'),
+  body('Role').optional().isIn(['user', 'manager']).withMessage('角色只能是user或manager')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -111,12 +111,12 @@ router.post('/register', [
       });
     }
 
-    const { username, password, email, role = 'user' } = req.body;
+    const { Username, Password, Email, Role = 'user' } = req.body;
 
     // 检查用户名是否已存在
     const existingUsers = await query(
       'SELECT Id FROM Users WHERE Username = ?',
-      [username]
+      [Username]
     );
     
     if (existingUsers.length > 0) {
@@ -129,7 +129,7 @@ router.post('/register', [
     // 检查邮箱是否已存在
     const existingEmails = await query(
       'SELECT Id FROM Users WHERE Email = ?',
-      [email]
+      [Email]
     );
     
     if (existingEmails.length > 0) {
@@ -140,13 +140,13 @@ router.post('/register', [
     }
 
     // 加密密码
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(Password, 10);
 
     // 创建用户
     const result = await query(`
       INSERT INTO Users (Username, Password, Email, Role)
       VALUES (?, ?, ?, ?)
-    `, [username, hashedPassword, email, role]);
+    `, [Username, hashedPassword, Email, Role]);
 
     res.status(201).json({
       success: true,
@@ -192,8 +192,8 @@ router.get('/me', authenticateToken, async (req, res) => {
 
 // 更新用户信息
 router.put('/me', authenticateToken, [
-  body('email').optional().isEmail().withMessage('邮箱格式不正确'),
-  body('password').optional().isLength({ min: 6 }).withMessage('密码长度至少6个字符')
+  body('Email').optional().isEmail().withMessage('邮箱格式不正确'),
+  body('Password').optional().isLength({ min: 6 }).withMessage('密码长度至少6个字符')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -205,14 +205,14 @@ router.put('/me', authenticateToken, [
       });
     }
 
-    const { email, password } = req.body;
+    const { Email, Password } = req.body;
     const updateData = {};
 
     // 如果更新邮箱，检查是否已被其他用户使用
-    if (email) {
+    if (Email) {
       const existingEmails = await query(
         'SELECT Id FROM Users WHERE Email = ? AND Id != ?',
-        [email, req.user.id]
+        [Email, req.user.id]
       );
       
       if (existingEmails.length > 0) {
@@ -221,12 +221,12 @@ router.put('/me', authenticateToken, [
           message: '邮箱已被其他用户使用'
         });
       }
-      updateData.Email = email;
+      updateData.Email = Email;
     }
 
     // 如果更新密码，加密新密码
-    if (password) {
-      updateData.Password = await bcrypt.hash(password, 10);
+    if (Password) {
+      updateData.Password = await bcrypt.hash(Password, 10);
     }
 
     if (Object.keys(updateData).length === 0) {
@@ -347,7 +347,7 @@ router.get('/users', authenticateToken, async (req, res) => {
 
 // 管理员更新用户状态
 router.put('/users/:id/status', authenticateToken, [
-  body('isActive').isBoolean().withMessage('isActive必须是布尔值')
+  body('IsActive').isBoolean().withMessage('IsActive必须是布尔值')
 ], async (req, res) => {
   try {
     // 检查用户权限
@@ -368,7 +368,7 @@ router.put('/users/:id/status', authenticateToken, [
     }
 
     const { id } = req.params;
-    const { isActive } = req.body;
+    const { IsActive } = req.body;
 
     // 检查用户是否存在
     const existingUsers = await query(
@@ -393,12 +393,12 @@ router.put('/users/:id/status', authenticateToken, [
 
     await query(
       'UPDATE Users SET IsActive = ?, UpdatedAt = CURRENT_TIMESTAMP(6) WHERE Id = ?',
-      [isActive, id]
+      [IsActive, id]
     );
 
     res.json({
       success: true,
-      message: `用户${isActive ? '启用' : '禁用'}成功`
+      message: `用户${IsActive ? '启用' : '禁用'}成功`
     });
   } catch (error) {
     console.error('更新用户状态错误:', error);

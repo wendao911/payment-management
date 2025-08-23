@@ -169,7 +169,11 @@ const PayableDetailModal = ({
               <p><strong>供应商：</strong>{currentPayable.SupplierName || '未知供应商'}</p>
             </Col>
             <Col span={12}>
-              <p><strong>应付金额：</strong>{currentPayable.CurrencySymbol}{currentPayable.PayableAmount?.toLocaleString()}</p>
+                             <p><strong>应付金额：</strong>
+                 <span style={{ fontWeight: 'bold' }}>
+                   ${parseFloat(currentPayable.PayableAmountUSD || 0).toFixed(2)}
+                 </span>
+               </p>
               <p><strong>币种：</strong>{currentPayable.CurrencyName}</p>
               <p><strong>付款截止日期：</strong>{dayjs(currentPayable.PaymentDueDate).format('YYYY-MM-DD')}</p>
               <p><strong>状态：</strong>
@@ -218,34 +222,25 @@ const PayableDetailModal = ({
                 </Card>
               </Col>
               <Col span={6}>
-                <Card size="small" style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>已付总额</div>
-                  <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#52c41a' }}>
-                    {currentPayable.CurrencySymbol || ''}
-                    {currentPayable.paymentRecords.reduce((sum, item) =>
-                      sum + (parseFloat(item.PaymentAmount || item.paymentAmount || 0)), 0
-                    ).toLocaleString('zh-CN', {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2
-                    })}
-                  </div>
-                </Card>
+                                 <Card size="small" style={{ textAlign: 'center' }}>
+                   <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>已付总额</div>
+                   <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#52c41a' }}>
+                     ${currentPayable.paymentRecords.reduce((sum, item) =>
+                       sum + (parseFloat(item.PaymentAmountUSD || 0)), 0
+                     ).toFixed(2)}
+                   </div>
+                 </Card>
               </Col>
               <Col span={6}>
-                <Card size="small" style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>剩余金额</div>
-                  <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#cf1322' }}>
-                    {currentPayable.CurrencySymbol || ''}
-                    {(parseFloat(currentPayable.PayableAmount || 0) -
-                      currentPayable.paymentRecords.reduce((sum, item) =>
-                        sum + (parseFloat(item.PaymentAmount || item.paymentAmount || 0)), 0
-                      )
-                    ).toLocaleString('zh-CN', {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2
-                    })}
-                  </div>
-                </Card>
+                                 <Card size="small" style={{ textAlign: 'center' }}>
+                   <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>剩余金额</div>
+                   <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#cf1322' }}>
+                     ${(parseFloat(currentPayable.PayableAmountUSD || 0) -
+                       currentPayable.paymentRecords.reduce((sum, item) =>
+                         sum + (parseFloat(item.PaymentAmountUSD || 0)), 0
+                       )).toFixed(2)}
+                   </div>
+                 </Card>
               </Col>
               <Col span={6}>
                 <Card size="small" style={{ textAlign: 'center' }}>
@@ -253,8 +248,8 @@ const PayableDetailModal = ({
                   <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#faad14' }}>
                     {Math.round(
                       (currentPayable.paymentRecords.reduce((sum, item) =>
-                        sum + (parseFloat(item.PaymentAmount || item.paymentAmount || 0)), 0
-                      ) / parseFloat(currentPayable.PayableAmount || 1)) * 100
+                        sum + (parseFloat(item.PaymentAmountUSD || item.PaymentAmountUSD || 0)), 0
+                      ) / parseFloat(currentPayable.PayableAmountUSD || 1)) * 100
                     )}%
                   </div>
                 </Card>
@@ -312,7 +307,7 @@ const PayableDetailModal = ({
                         </div>
                       </div>
                     </Col>
-                    <Col span={4} style={{ textAlign: 'center' }}>
+                    <Col span={6} style={{ textAlign: 'center' }}>
                       <div style={{
                         fontSize: '16px',
                         fontWeight: 'bold',
@@ -327,6 +322,19 @@ const PayableDetailModal = ({
                       </div>
                       <div style={{ fontSize: '12px', color: '#999' }}>
                         {item.CurrencyCode || item.currencyCode || 'USD'}
+                      </div>
+                    </Col>
+                    <Col span={4} style={{ textAlign: 'center' }}>
+                      <div style={{
+                        fontSize: '16px',
+                        fontWeight: 'bold',
+                        color: '#1890ff',
+                        fontFamily: 'Monaco, Menlo, Ubuntu Mono, monospace'
+                      }}>
+                        ${parseFloat(item.PaymentAmountUSD || 0).toFixed(2)}
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#999' }}>
+                        美元等值
                       </div>
                     </Col>
                     <Col span={6} style={{ textAlign: 'right' }}>

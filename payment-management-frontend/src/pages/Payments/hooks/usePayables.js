@@ -12,7 +12,7 @@ export const usePayables = () => {
   const [loading, setLoading] = useState(false);
   const [editLoading, setEditLoading] = useState(false);
 
-  // 数据处理辅助函数
+  // 数据处理辅助函数 - 后端已经包含paymentRecords，无需额外调用
   const processPayablesData = async (payablesData) => {
     const processedData = [...payablesData];
 
@@ -30,22 +30,8 @@ export const usePayables = () => {
       payable.Importance = payable.Importance || 'normal';
       payable.Urgency = payable.Urgency || 'normal';
 
-      const payableId = payable.Id || payable.id;
-      if (!payableId) {
-        console.warn('应付管理记录缺少ID字段:', payable);
-        payable.paymentRecords = [];
-        continue;
-      }
-
-      try {
-        const paymentRecordsResponse = await apiClient.get(`/payment-records/payable/${payableId}`);
-        if (paymentRecordsResponse.success) {
-          payable.paymentRecords = paymentRecordsResponse.data || [];
-        } else {
-          payable.paymentRecords = [];
-        }
-      } catch (error) {
-        console.warn(`获取应付管理 ${payableId} 的付款记录失败:`, error.message);
+      // 确保paymentRecords字段存在，后端现在已经包含此字段
+      if (!payable.paymentRecords) {
         payable.paymentRecords = [];
       }
     }

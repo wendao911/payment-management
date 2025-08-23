@@ -20,13 +20,13 @@ const BankAccountModal = ({
     if (visible && editingAccount) {
       // 字段名称映射：从数据库字段名映射到表单字段名
       const formData = {
-        bankId: editingAccount.BankId,
-        accountNumber: editingAccount.AccountNumber,
-        accountName: editingAccount.AccountName,
-        accountType: editingAccount.AccountType,
-        currencyCode: editingAccount.CurrencyCode,
-        initialBalance: editingAccount.InitialBalance,
-        notes: editingAccount.Notes
+        BankId: editingAccount.BankId,
+        AccountNumber: editingAccount.AccountNumber,
+        AccountName: editingAccount.AccountName,
+        AccountType: editingAccount.AccountType,
+        CurrencyCode: editingAccount.CurrencyCode,
+        InitialBalance: editingAccount.InitialBalance,
+        Notes: editingAccount.Notes
       };
       form.setFieldsValue(formData);
     } else if (visible && !editingAccount) {
@@ -79,7 +79,7 @@ const BankAccountModal = ({
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
-              name="bankId"
+              name="BankId"
               label="所属银行"
               rules={[{ required: true, message: '请选择所属银行' }]}
             >
@@ -94,7 +94,7 @@ const BankAccountModal = ({
           </Col>
           <Col span={12}>
             <Form.Item
-              name="accountNumber"
+              name="AccountNumber"
               label="账户号码"
               rules={[{ required: true, message: '请输入账户号码' }]}
             >
@@ -106,7 +106,7 @@ const BankAccountModal = ({
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
-              name="accountName"
+              name="AccountName"
               label="账户名称"
               rules={[{ required: true, message: '请输入账户名称' }]}
             >
@@ -115,7 +115,7 @@ const BankAccountModal = ({
           </Col>
           <Col span={12}>
             <Form.Item
-              name="accountType"
+              name="AccountType"
               label="账户类型"
               rules={[{ required: true, message: '请选择账户类型' }]}
             >
@@ -132,7 +132,7 @@ const BankAccountModal = ({
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
-              name="currencyCode"
+              name="CurrencyCode"
               label="账户币种"
               rules={[{ required: true, message: '请选择账户币种' }]}
             >
@@ -147,7 +147,7 @@ const BankAccountModal = ({
           </Col>
           <Col span={12}>
             <Form.Item
-              name="initialBalance"
+              name="InitialBalance"
               label="初始余额"
               rules={[
                 { required: true, message: '请输入初始余额' },
@@ -179,7 +179,7 @@ const BankAccountModal = ({
         </Row>
 
         <Form.Item
-          name="notes"
+          name="Notes"
           label="备注"
         >
           <TextArea rows={3} placeholder="请输入备注信息" />

@@ -212,13 +212,13 @@ router.get('/bank/:bankId', authenticateToken, async (req, res) => {
 
 // 创建银行账户
 router.post('/', authenticateToken, [
-  body('bankId').isInt().withMessage('银行ID必须是整数'),
-  body('accountNumber').notEmpty().withMessage('账户号码不能为空'),
-  body('accountName').notEmpty().withMessage('账户名称不能为空'),
-  body('accountType').isIn(['Checking', 'Savings', 'Investment', 'Other']).withMessage('账户类型无效'),
-  body('currencyCode').notEmpty().withMessage('币种不能为空'),
-  body('initialBalance').isFloat({ min: 0 }).withMessage('初始余额必须是非负数'),
-  body('notes').optional()
+  body('BankId').isInt().withMessage('银行ID必须是整数'),
+  body('AccountNumber').notEmpty().withMessage('账户号码不能为空'),
+  body('AccountName').notEmpty().withMessage('账户名称不能为空'),
+  body('AccountType').isIn(['Checking', 'Savings', 'Investment', 'Other']).withMessage('账户类型无效'),
+  body('CurrencyCode').notEmpty().withMessage('币种不能为空'),
+  body('InitialBalance').isFloat({ min: 0 }).withMessage('初始余额必须是非负数'),
+  body('Notes').optional()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -230,12 +230,12 @@ router.post('/', authenticateToken, [
       });
     }
 
-    const { bankId, accountNumber, accountName, accountType, currencyCode, initialBalance, notes } = req.body;
+    const { BankId, AccountNumber, AccountName, AccountType, CurrencyCode, InitialBalance, Notes } = req.body;
 
     // 检查银行是否存在
     const banks = await query(
       'SELECT Id FROM banks WHERE Id = ? AND IsActive = TRUE',
-      [bankId]
+      [BankId]
     );
     
     if (banks.length === 0) {
@@ -248,7 +248,7 @@ router.post('/', authenticateToken, [
     // 检查账户号码是否已存在
     const existingAccounts = await query(
       'SELECT Id FROM bankaccounts WHERE BankId = ? AND AccountNumber = ?',
-      [bankId, accountNumber]
+      [BankId, AccountNumber]
     );
     
     if (existingAccounts.length > 0) {
@@ -259,14 +259,14 @@ router.post('/', authenticateToken, [
     }
 
     // 处理可能为undefined的参数，转换为null
-    const processedNotes = notes === undefined ? null : notes;
-    const processedInitialBalance = initialBalance === undefined ? 0 : initialBalance;
+    const processedNotes = Notes === undefined ? null : Notes;
+    const processedInitialBalance = InitialBalance === undefined ? 0 : InitialBalance;
 
     const result = await query(`
       INSERT INTO bankaccounts (
         BankId, AccountNumber, AccountName, AccountType, CurrencyCode, InitialBalance, CurrentBalance, Notes
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `, [bankId, accountNumber, accountName, accountType, currencyCode, processedInitialBalance, processedInitialBalance, processedNotes]);
+    `, [BankId, AccountNumber, AccountName, AccountType, CurrencyCode, processedInitialBalance, processedInitialBalance, processedNotes]);
 
     res.json({
       success: true,
@@ -284,12 +284,12 @@ router.post('/', authenticateToken, [
 
 // 更新银行账户
 router.put('/:id', authenticateToken, [
-  body('bankId').isInt().withMessage('银行ID必须是整数'),
-  body('accountNumber').notEmpty().withMessage('账户号码不能为空'),
-  body('accountName').notEmpty().withMessage('账户名称不能为空'),
-  body('accountType').isIn(['Checking', 'Savings', 'Investment', 'Other']).withMessage('账户类型无效'),
-  body('currencyCode').notEmpty().withMessage('币种不能为空'),
-  body('notes').optional()
+  body('BankId').isInt().withMessage('银行ID必须是整数'),
+  body('AccountNumber').notEmpty().withMessage('账户号码不能为空'),
+  body('AccountName').notEmpty().withMessage('账户名称不能为空'),
+  body('AccountType').isIn(['Checking', 'Savings', 'Investment', 'Other']).withMessage('账户类型无效'),
+  body('CurrencyCode').notEmpty().withMessage('币种不能为空'),
+  body('Notes').optional()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);

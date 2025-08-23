@@ -20,17 +20,17 @@ const SearchForm = ({ onSearch, onReset, suppliers }) => {
     <Form form={form} layout="vertical" onFinish={handleSubmit} className="search-form" size="middle">
       <Row gutter={[16, 8]} style={{ width: '100%' }}>
         <Col xs={24} sm={12} md={6}>
-          <Form.Item name="contractNumber" label="合同编号">
+          <Form.Item name="ContractNumber" label="合同编号">
             <Input placeholder="请输入合同编号" allowClear />
           </Form.Item>
         </Col>
         <Col xs={24} sm={12} md={6}>
-          <Form.Item name="title" label="合同标题">
+          <Form.Item name="Title" label="合同标题">
             <Input placeholder="请输入合同标题" allowClear />
           </Form.Item>
         </Col>
         <Col xs={24} sm={12} md={6}>
-          <Form.Item name="supplierId" label="供应商">
+          <Form.Item name="SupplierId" label="供应商">
             <Select placeholder="请选择供应商" allowClear>
               {(suppliers || []).map((s) => (
                 <Option key={s.Id} value={s.Id}>{s.Name}</Option>
@@ -39,7 +39,7 @@ const SearchForm = ({ onSearch, onReset, suppliers }) => {
           </Form.Item>
         </Col>
         <Col xs={24} sm={12} md={6}>
-          <Form.Item name="status" label="状态">
+          <Form.Item name="Status" label="状态">
             <Select placeholder="请选择状态" allowClear>
               <Option value="draft">草稿</Option>
               <Option value="active">生效</Option>
@@ -49,7 +49,7 @@ const SearchForm = ({ onSearch, onReset, suppliers }) => {
           </Form.Item>
         </Col>
         <Col xs={24} sm={24} md={8}>
-          <Form.Item name="dateRange" label="签订日期">
+          <Form.Item name="DateRange" label="签订日期">
             <RangePicker style={{ width: '100%' }} />
           </Form.Item>
         </Col>
