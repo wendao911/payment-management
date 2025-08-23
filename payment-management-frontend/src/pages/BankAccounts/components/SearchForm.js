@@ -20,7 +20,7 @@ const SearchForm = ({ banks, currencies, onSearch, onReset }) => {
     <Card size="small" style={{ marginBottom: 16 }}>
       <Form
         form={form}
-        layout="inline"
+        layout="vertical"
         onFinish={handleSubmit}
         style={{ marginBottom: 16 }}
         size="middle"
@@ -69,17 +69,17 @@ const SearchForm = ({ banks, currencies, onSearch, onReset }) => {
               </Select>
             </Form.Item>
           </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Form.Item>
-              <Space>
-                <Button type="primary" icon={<SearchOutlined />} htmlType="submit">
-                  查询
-                </Button>
-                <Button icon={<ReloadOutlined />} onClick={handleReset}>
-                  重置
-                </Button>
-              </Space>
-            </Form.Item>
+        </Row>
+        <Row justify="end" style={{ marginTop: 16 }}>
+          <Col>
+            <Space>
+              <Button type="primary" icon={<SearchOutlined />} htmlType="submit">
+                查询
+              </Button>
+              <Button icon={<ReloadOutlined />} onClick={handleReset}>
+                重置
+              </Button>
+            </Space>
           </Col>
         </Row>
       </Form>

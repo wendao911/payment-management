@@ -17,7 +17,7 @@ const SearchForm = ({ onSearch, onReset, suppliers }) => {
   };
 
   return (
-    <Form form={form} layout="inline" onFinish={handleSubmit} className="search-form" size="middle">
+    <Form form={form} layout="vertical" onFinish={handleSubmit} className="search-form" size="middle">
       <Row gutter={[16, 8]} style={{ width: '100%' }}>
         <Col xs={24} sm={12} md={6}>
           <Form.Item name="contractNumber" label="合同编号">
@@ -53,13 +53,13 @@ const SearchForm = ({ onSearch, onReset, suppliers }) => {
             <RangePicker style={{ width: '100%' }} />
           </Form.Item>
         </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Form.Item>
-            <Space>
-              <Button type="primary" htmlType="submit">查询</Button>
-              <Button onClick={handleReset}>重置</Button>
-            </Space>
-          </Form.Item>
+      </Row>
+      <Row justify="end" style={{ marginTop: 16 }}>
+        <Col>
+          <Space>
+            <Button type="primary" htmlType="submit">查询</Button>
+            <Button onClick={handleReset}>重置</Button>
+          </Space>
         </Col>
       </Row>
     </Form>

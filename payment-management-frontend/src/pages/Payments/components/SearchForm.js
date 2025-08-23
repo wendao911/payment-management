@@ -29,7 +29,7 @@ const SearchForm = ({
   return (
     <Form
       form={form}
-      layout="inline"
+      layout="vertical"
       onFinish={onSearch}
       style={{ marginBottom: 16 }}
       size="middle"
@@ -106,17 +106,17 @@ const SearchForm = ({
             <RangePicker placeholder={['开始日期', '结束日期']} style={{ width: '100%' }} />
           </Form.Item>
         </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Form.Item>
-            <Space>
-              <Button type="primary" icon={<SearchOutlined />} htmlType="submit" loading={loading}>
-                查询
-              </Button>
-              <Button icon={<ReloadOutlined />} onClick={onReset}>
-                重置
-              </Button>
-            </Space>
-          </Form.Item>
+      </Row>
+      <Row justify="end" style={{ marginTop: 16 }}>
+        <Col>
+          <Space>
+            <Button type="primary" icon={<SearchOutlined />} htmlType="submit" loading={loading}>
+              查询
+            </Button>
+            <Button icon={<ReloadOutlined />} onClick={onReset}>
+              重置
+            </Button>
+          </Space>
         </Col>
       </Row>
     </Form>

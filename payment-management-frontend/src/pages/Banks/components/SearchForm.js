@@ -20,7 +20,7 @@ const SearchForm = ({ countries, onSearch, onReset }) => {
     <Card size="small" style={{ marginBottom: 16 }}>
       <Form
         form={form}
-        layout="inline"
+        layout="vertical"
         onFinish={handleSubmit}
         style={{ marginBottom: 16 }}
         size="middle"
@@ -48,7 +48,7 @@ const SearchForm = ({ countries, onSearch, onReset }) => {
             </Form.Item>
           </Col>
           <Col xs={24} sm={12} md={6}>
-            <Form.Item name="CountryId" label="所属国家">
+            <Form.Item name="CountryId" label="国家">
               <Select placeholder="请选择国家" allowClear>
                 {countries.map(country => (
                   <Option key={country.Id} value={country.Id}>
@@ -66,17 +66,17 @@ const SearchForm = ({ countries, onSearch, onReset }) => {
               </Select>
             </Form.Item>
           </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Form.Item>
-              <Space>
-                <Button type="primary" icon={<SearchOutlined />} htmlType="submit">
-                  查询
-                </Button>
-                <Button icon={<ReloadOutlined />} onClick={handleReset}>
-                  重置
-                </Button>
-              </Space>
-            </Form.Item>
+        </Row>
+        <Row justify="end" style={{ marginTop: 16 }}>
+          <Col>
+            <Space>
+              <Button type="primary" icon={<SearchOutlined />} htmlType="submit">
+                查询
+              </Button>
+              <Button icon={<ReloadOutlined />} onClick={handleReset}>
+                重置
+              </Button>
+            </Space>
           </Col>
         </Row>
       </Form>

@@ -107,19 +107,7 @@ const PaymentRecordsTable = ({ loading, dataSource, currencies, payables, onView
       ellipsis: true,
       render: (_, record) => record.Notes || record.notes || '-',
     },
-    {
-      title: '附件数量',
-      key: 'attachments',
-      width: 100,
-      render: (_, record) => {
-        const attachmentCount = record.AttachmentCount ?? (record.attachments ? record.attachments.length : 0) ?? 0;
-        return attachmentCount > 0 ? (
-          <span style={{ color: '#1890ff' }}>{attachmentCount} 个</span>
-        ) : (
-          <span style={{ color: '#999' }}>无</span>
-        );
-      },
-    },
+
     {
       title: '操作',
       key: 'action',
