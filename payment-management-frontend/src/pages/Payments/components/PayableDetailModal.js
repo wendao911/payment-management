@@ -167,20 +167,25 @@ const PayableDetailModal = ({
                 })()
               }</p>
               <p><strong>供应商：</strong>{currentPayable.SupplierName || '未知供应商'}</p>
-            </Col>
-            <Col span={12}>
-                             <p><strong>应付金额：</strong>
-                 <span style={{ fontWeight: 'bold' }}>
-                   ${parseFloat(currentPayable.PayableAmountUSD || 0).toFixed(2)}
-                 </span>
-               </p>
-              <p><strong>币种：</strong>{currentPayable.CurrencyName}</p>
-              <p><strong>付款截止日期：</strong>{dayjs(currentPayable.PaymentDueDate).format('YYYY-MM-DD')}</p>
               <p><strong>状态：</strong>
                 <Tag color={getStatusColor(currentPayable.Status)}>
                   {getStatusText(currentPayable.Status)}
                 </Tag>
               </p>
+            </Col>
+            <Col span={12}>
+              <p><strong>应付金额：</strong>
+                <span style={{ fontWeight: 'bold' }}>
+                  {currentPayable.CurrencySymbol || ''}{parseFloat(currentPayable.PayableAmount || 0).toFixed(2)}
+                </span>
+              </p>
+              <p><strong>币种：</strong>{currentPayable.CurrencyName}</p>
+              <p><strong>美元等值：</strong>
+                <span style={{ fontWeight: 'bold' }}>
+                  ${parseFloat(currentPayable.PayableAmountUSD || 0).toFixed(2)}
+                </span>
+              </p>
+              <p><strong>付款截止日期：</strong>{dayjs(currentPayable.PaymentDueDate).format('YYYY-MM-DD')}</p>
             </Col>
           </Row>
           <Divider />
@@ -222,25 +227,25 @@ const PayableDetailModal = ({
                 </Card>
               </Col>
               <Col span={6}>
-                                 <Card size="small" style={{ textAlign: 'center' }}>
-                   <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>已付总额</div>
-                   <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#52c41a' }}>
-                     ${currentPayable.paymentRecords.reduce((sum, item) =>
-                       sum + (parseFloat(item.PaymentAmountUSD || 0)), 0
-                     ).toFixed(2)}
-                   </div>
-                 </Card>
+                <Card size="small" style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>已付总额</div>
+                  <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#52c41a' }}>
+                    ${currentPayable.paymentRecords.reduce((sum, item) =>
+                      sum + (parseFloat(item.PaymentAmountUSD || 0)), 0
+                    ).toFixed(2)}
+                  </div>
+                </Card>
               </Col>
               <Col span={6}>
-                                 <Card size="small" style={{ textAlign: 'center' }}>
-                   <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>剩余金额</div>
-                   <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#cf1322' }}>
-                     ${(parseFloat(currentPayable.PayableAmountUSD || 0) -
-                       currentPayable.paymentRecords.reduce((sum, item) =>
-                         sum + (parseFloat(item.PaymentAmountUSD || 0)), 0
-                       )).toFixed(2)}
-                   </div>
-                 </Card>
+                <Card size="small" style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>剩余金额</div>
+                  <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#cf1322' }}>
+                    ${(parseFloat(currentPayable.PayableAmountUSD || 0) -
+                      currentPayable.paymentRecords.reduce((sum, item) =>
+                        sum + (parseFloat(item.PaymentAmountUSD || 0)), 0
+                      )).toFixed(2)}
+                  </div>
+                </Card>
               </Col>
               <Col span={6}>
                 <Card size="small" style={{ textAlign: 'center' }}>
