@@ -3,6 +3,7 @@ const { body, validationResult } = require('express-validator');
 const { query, transaction } = require('../config/database');
 const { authenticateToken } = require('../middleware/auth');
 const { upload } = require('../middleware/upload');
+const ExcelJS = require('exceljs');
 const router = express.Router();
 
 // 获取所有付款记录
@@ -16,6 +17,7 @@ router.get('/', authenticateToken, async (req, res) => {
     let sql = `
       SELECT 
         pr.*,
+        pr.PayableManagementId,
         cur.Name as CurrencyName,
         cur.Symbol as CurrencySymbol,
         pm.PayableNumber,
@@ -690,6 +692,135 @@ router.get('/stats/summary', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       message: '获取付款记录统计信息失败'
+    });
+  }
+});
+
+// 导出付款记录到Excel
+router.get('/export/excel', authenticateToken, async (req, res) => {
+  try {
+    const { paymentNumber, payableManagementId, supplierId, contractId, startDate, endDate } = req.query;
+    
+    // 构建查询SQL，与列表查询保持一致
+    let sql = `
+      SELECT 
+        pr.*,
+        pr.PayableManagementId,
+        cur.Name as CurrencyName,
+        cur.Symbol as CurrencySymbol,
+        pm.PayableNumber,
+        pm.ContractId,
+        pm.SupplierId,
+        pm.Description as Description,
+        s.Name as SupplierName,
+        c.ContractNumber,
+        c.Title as ContractTitle
+      FROM PaymentRecords pr
+      LEFT JOIN Currencies cur ON pr.CurrencyCode = cur.Code
+      LEFT JOIN PayableManagement pm ON pr.PayableManagementId = pm.Id
+      LEFT JOIN Contracts c ON pm.ContractId = c.Id
+      LEFT JOIN Suppliers s ON pm.SupplierId = s.Id
+      WHERE 1=1
+    `;
+    const params = [];
+    
+    if (paymentNumber) {
+      sql += ` AND pr.PaymentNumber LIKE ?`;
+      params.push(`%${paymentNumber}%`);
+    }
+    
+    if (payableManagementId) {
+      sql += ` AND pr.PayableManagementId = ?`;
+      params.push(payableManagementId);
+    }
+    
+    if (supplierId) {
+      sql += ` AND pm.SupplierId = ?`;
+      params.push(supplierId);
+    }
+
+    if (contractId) {
+      sql += ` AND pm.ContractId = ?`;
+      params.push(contractId);
+    }
+    
+    if (startDate && endDate) {
+      sql += ` AND pr.PaymentDate BETWEEN ? AND ?`;
+      params.push(startDate, endDate);
+    }
+    
+    sql += ` ORDER BY pr.PaymentDate DESC`;
+    
+    const paymentRecords = await query(sql, params);
+    
+    // 创建Excel工作簿
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('付款记录');
+    
+    // 设置列标题（与前端表格保持一致）
+    worksheet.columns = [
+      { header: '付款编号', key: 'paymentNumber', width: 20 },
+      { header: '应付编号', key: 'payableNumber', width: 20 },
+      { header: '应付说明', key: 'description', width: 30 },
+      { header: '合同编号', key: 'contractNumber', width: 25 },
+      { header: '供应商', key: 'supplierName', width: 20 },
+      { header: '付款说明', key: 'paymentDescription', width: 30 },
+      { header: '付款金额', key: 'paymentAmount', width: 15 },
+      { header: '币种', key: 'currencyCode', width: 10 },
+      { header: '金额(USD)', key: 'amountUSD', width: 15 },
+      { header: '付款日期', key: 'paymentDate', width: 15 },
+      { header: '备注', key: 'notes', width: 25 }
+    ];
+    
+    // 设置表头样式
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE0E0E0' }
+    };
+    
+    // 添加数据行
+    paymentRecords.forEach(record => {
+      // 计算USD金额
+      const upper = String(record.CurrencyCode || record.currencyCode || '').toUpperCase();
+      const rate = upper === 'USD' ? 1 : upper === 'CNY' || upper === 'RMB' ? 7.2 : 1;
+      const usd = Number(record.PaymentAmount || record.paymentAmount || 0) / (rate || 1);
+      
+      // 格式化合同信息
+      const contractNumber = record.ContractNumber || record.contractNumber || '';
+      const contractTitle = record.ContractTitle || record.Title || '';
+      const contractInfo = contractNumber && contractTitle ? `${contractNumber} - ${contractTitle}` : (contractNumber || contractTitle || '');
+      
+      worksheet.addRow({
+        paymentNumber: record.PaymentNumber || record.paymentNumber || '-',
+        payableNumber: record.PayableNumber || '-',
+        description: record.Description || '-',
+        contractNumber: contractInfo,
+        supplierName: record.SupplierName || record.supplierName || '-',
+        paymentDescription: record.PaymentDescription || record.paymentDescription || '-',
+        paymentAmount: Number(record.PaymentAmount || record.paymentAmount || 0),
+        currencyCode: record.CurrencyCode || record.currencyCode || '-',
+        amountUSD: usd.toFixed(2),
+        paymentDate: record.PaymentDate || record.paymentDate ? new Date(record.PaymentDate || record.paymentDate).toLocaleDateString('zh-CN') : '-',
+        notes: record.Notes || record.notes || '-'
+      });
+    });
+    
+    // 设置响应头
+    const fileName = `付款记录_${new Date().toISOString().split('T')[0]}.xlsx`;
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
+    
+    // 写入响应流
+    await workbook.xlsx.write(res);
+    res.end();
+    
+  } catch (error) {
+    console.error('导出Excel错误:', error);
+    res.status(500).json({
+      success: false,
+      message: '导出Excel失败'
     });
   }
 });

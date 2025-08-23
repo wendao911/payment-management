@@ -135,6 +135,39 @@ export const apiClient = {
         error 
       };
     }
+  },
+
+  // 导出Excel文件
+  exportExcel: async (url, params = {}, filename = 'export.xlsx') => {
+    try {
+      const response = await api.get(url, {
+        params,
+        responseType: 'blob'
+      });
+      
+      // 创建下载链接
+      const blob = new Blob([response.data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
+      
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+      
+      return { success: true, message: '导出成功' };
+    } catch (error) {
+      console.error('导出Excel失败:', error);
+      return { 
+        success: false, 
+        message: error.response?.data?.message || error.message || '导出失败',
+        error 
+      };
+    }
   }
 };
 

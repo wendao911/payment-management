@@ -62,7 +62,16 @@ const SummaryCards = ({ paymentRecords = [], currencies = [] }) => {
         <Card size="small" hoverable>
           <Statistic
             title="涉及应付数"
-            value={new Set(paymentRecords.map(record => record.payableManagementId)).size}
+            value={(() => {
+              // 获取所有不重复的应付管理ID
+              const payableIds = paymentRecords
+                .map(record => record.PayableManagementId || record.payableManagementId)
+                .filter(id => id != null && id !== undefined);
+              
+              const uniqueIds = new Set(payableIds);
+              
+              return uniqueIds.size;
+            })()}
             valueStyle={{ color: '#fa8c16' }}
             precision={0}
           />

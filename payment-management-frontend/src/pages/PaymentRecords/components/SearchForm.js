@@ -1,6 +1,6 @@
 import React from 'react';
 import { Form, Input, Select, DatePicker, Row, Col, Button, TreeSelect, Space } from 'antd';
-import { SearchOutlined, ReloadOutlined } from '@ant-design/icons';
+import { SearchOutlined, ReloadOutlined, DownloadOutlined } from '@ant-design/icons';
 
 const { Option } = Select;
 
@@ -8,6 +8,7 @@ const SearchForm = ({
   form,
   onSearch,
   onReset,
+  onExport,
   payables = [],
   suppliers = [],
   contractTreeData = [],
@@ -87,6 +88,15 @@ const SearchForm = ({
             </Button>
             <Button icon={<ReloadOutlined />} onClick={onReset} disabled={loading}>
               重置
+            </Button>
+            <Button 
+              type="default" 
+              icon={<DownloadOutlined />} 
+              onClick={onExport} 
+              disabled={loading}
+              style={{ color: '#52c41a', borderColor: '#52c41a' }}
+            >
+              导出Excel
             </Button>
           </Space>
         </Col>
