@@ -1,7 +1,8 @@
 import axios from 'axios';
 
 // 固定默认后端地址，允许通过 .env 的 REACT_APP_API_URL 覆盖
-const DEFAULT_API_BASE_URL = 'http://10.125.5.103:5000/api';
+// const DEFAULT_API_BASE_URL = 'http://10.125.5.103:5000/api';
+const DEFAULT_API_BASE_URL = 'http://localhost:5000/api';
 
 // 获取后端服务器地址（优先 .env，回退固定地址），并做基础校验与清洗
 const getBackendURL = () => {

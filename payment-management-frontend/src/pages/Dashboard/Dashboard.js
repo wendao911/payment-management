@@ -51,7 +51,7 @@ const Dashboard = () => {
       {/* 付款预警统计 */}
       <PaymentWarningSummary onViewDetails={(type) => {
         // 跳转到付款管理页面并应用相应的过滤
-        window.location.href = `/payments?filter=${type}`;
+        window.location.href = `#/payments?filter=${type}`;
       }} />
 
       <Divider />
