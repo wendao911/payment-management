@@ -138,4 +138,21 @@ export const dashboardStyles = `
   .font-bold {
     font-weight: 600 !important;
   }
+  
+  /* 紧急和逾期行样式 */
+  .dashboard-table .urgent-row {
+    background-color: #fff7e6 !important;
+  }
+  
+  .dashboard-table .urgent-row:hover > td {
+    background-color: #ffe7ba !important;
+  }
+  
+  .dashboard-table .overdue-row {
+    background-color: #fff2f0 !important;
+  }
+  
+  .dashboard-table .overdue-row:hover > td {
+    background-color: #ffccc7 !important;
+  }
 `;

@@ -15,7 +15,10 @@ export const useDashboard = () => {
 
   // 应付（紧急/逾期）
   const [payablesLoading, setPayablesLoading] = useState(false);
-  const [payablesSummary, setPayablesSummary] = useState({ urgent: [], overdue: [] });
+  const [payablesSummary, setPayablesSummary] = useState({ 
+    payables: [], 
+    summary: { urgent: { count: 0, totalUsd: 0 }, overdue: { count: 0, totalUsd: 0 } } 
+  });
 
   // 付款记录汇总（按日/月/年筛选）
   const [paymentsLoading, setPaymentsLoading] = useState(false);
@@ -67,7 +70,10 @@ export const useDashboard = () => {
     try {
       const res = await apiClient.get('/dashboard/payables/summary');
       if (res.success) {
-        setPayablesSummary(res.data || { urgent: [], overdue: [] });
+        setPayablesSummary(res.data || { 
+          payables: [], 
+          summary: { urgent: { count: 0, totalUsd: 0 }, overdue: { count: 0, totalUsd: 0 } } 
+        });
       }
     } catch (e) {
       // ignore

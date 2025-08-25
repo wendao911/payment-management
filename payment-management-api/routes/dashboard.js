@@ -71,7 +71,8 @@ router.get('/bank-accounts/summary', authenticateToken, async (req, res) => {
 // 应付汇总：紧急与逾期（统一美元）
 router.get('/payables/summary', authenticateToken, async (req, res) => {
   try {
-    const urgentRows = await query(`
+    // 合并查询紧急和逾期的应付
+    const payablesRows = await query(`
       SELECT 
         pm.Id,
         pm.PayableNumber,
@@ -81,72 +82,124 @@ router.get('/payables/summary', authenticateToken, async (req, res) => {
         pm.Importance,
         pm.Urgency,
         pm.Status,
+        pm.Description AS PayableDescription,
         s.Name AS SupplierName,
         c.ContractNumber,
-        COALESCE(SUM(pr.PaymentAmount), 0) AS TotalPaidAmount,
-        cur.ExchangeRate
+        c.Title AS ContractTitle,
+        cur.ExchangeRate,
+        CASE 
+          WHEN pm.PaymentDueDate < CURDATE() AND pm.Status != 'completed' THEN 'overdue'
+          WHEN pm.PaymentDueDate BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY) AND pm.Status != 'completed' THEN 'urgent'
+          ELSE 'normal'
+        END AS WarningStatus
       FROM PayableManagement pm
       LEFT JOIN Suppliers s ON pm.SupplierId = s.Id
       LEFT JOIN Contracts c ON pm.ContractId = c.Id
-      LEFT JOIN PaymentRecords pr ON pr.PayableManagementId = pm.Id
       LEFT JOIN Currencies cur ON pm.CurrencyCode = cur.Code
-      WHERE pm.Urgency IN ('urgent', 'very_urgent') AND pm.Status != 'completed'
-      GROUP BY pm.Id, pm.PayableNumber, pm.PayableAmount, pm.CurrencyCode, pm.PaymentDueDate, pm.Importance, pm.Urgency, pm.Status, s.Name, c.ContractNumber, cur.ExchangeRate
+      WHERE (pm.PaymentDueDate < CURDATE() AND pm.Status != 'completed')
+         OR (pm.PaymentDueDate BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY) AND pm.Status != 'completed')
       ORDER BY pm.PaymentDueDate ASC, pm.Importance DESC
     `);
 
-    const overdueRows = await query(`
-      SELECT 
-        pm.Id,
-        pm.PayableNumber,
-        pm.PayableAmount,
-        pm.CurrencyCode,
-        pm.PaymentDueDate,
-        pm.Importance,
-        pm.Urgency,
-        pm.Status,
-        s.Name AS SupplierName,
-        c.ContractNumber,
-        COALESCE(SUM(pr.PaymentAmount), 0) AS TotalPaidAmount,
-        cur.ExchangeRate
-      FROM PayableManagement pm
-      LEFT JOIN Suppliers s ON pm.SupplierId = s.Id
-      LEFT JOIN Contracts c ON pm.ContractId = c.Id
-      LEFT JOIN PaymentRecords pr ON pr.PayableManagementId = pm.Id
-      LEFT JOIN Currencies cur ON pm.CurrencyCode = cur.Code
-      WHERE (pm.Status = 'overdue' OR (pm.PaymentDueDate < NOW() AND pm.Status != 'completed'))
-      GROUP BY pm.Id, pm.PayableNumber, pm.PayableAmount, pm.CurrencyCode, pm.PaymentDueDate, pm.Importance, pm.Urgency, pm.Status, s.Name, c.ContractNumber, cur.ExchangeRate
-      ORDER BY pm.PaymentDueDate ASC, pm.Importance DESC
-    `);
+    // 为每个应付查询其付款记录和汇率
+    const payables = await Promise.all(payablesRows.map(async (r) => {
+      try {
+        // 查询该应付的所有付款记录
+        const paymentRecords = await query(`
+          SELECT 
+            pr.PaymentAmount,
+            pr.CurrencyCode,
+            cur.ExchangeRate
+          FROM PaymentRecords pr
+          LEFT JOIN Currencies cur ON pr.CurrencyCode = cur.Code
+          WHERE pr.PayableManagementId = ?
+        `, [r.Id]);
 
-    const mapUsd = (rows) => rows.map(r => {
-      const rate = Number(r.ExchangeRate || 1);
-      const toUsd = (amt) => Number((Number(amt || 0) / (rate || 1)).toFixed(2));
-      const paid = Number(r.TotalPaidAmount || 0);
-      const remaining = Number(r.PayableAmount || 0) - paid;
-      return {
-        id: r.Id,
-        payableNumber: r.PayableNumber,
-        supplierName: r.SupplierName,
-        contractNumber: r.ContractNumber,
-        payableAmount: Number(r.PayableAmount || 0),
-        totalPaidAmount: paid,
-        remainingAmount: remaining,
-        currencyCode: r.CurrencyCode,
-        paymentDueDate: r.PaymentDueDate,
-        importance: r.Importance,
-        urgency: r.Urgency,
-        status: r.Status,
-        payableAmountUsd: toUsd(r.PayableAmount),
-        totalPaidAmountUsd: toUsd(paid),
-        remainingAmountUsd: toUsd(remaining)
-      };
+        // 计算已付金额（需要按币种分别换算）
+        let totalPaidAmountUsd = 0;
+        let totalPaidAmount = 0;
+        
+        paymentRecords.forEach(pr => {
+          const amount = Number(pr.PaymentAmount || 0);
+          const rate = Number(pr.ExchangeRate || 1);
+          totalPaidAmount += amount;
+          totalPaidAmountUsd += amount / rate;
+        });
+
+        const payableRate = Number(r.ExchangeRate || 1);
+        const payableAmountUsd = Number(r.PayableAmount || 0) / payableRate;
+        const remainingAmount = Math.max(0, Number(r.PayableAmount || 0) - totalPaidAmount);
+        const remainingAmountUsd = Math.max(0, payableAmountUsd - totalPaidAmountUsd);
+        
+        return {
+          id: r.Id,
+          payableNumber: r.PayableNumber,
+          payableDescription: r.PayableDescription || '',
+          supplierName: r.SupplierName || '',
+          contractNumber: r.ContractNumber || '',
+          contractTitle: r.ContractTitle || '',
+          contractDisplay: `${r.ContractNumber || ''}-${r.ContractTitle || ''}`.replace(/^-/, ''),
+          payableAmount: Number(r.PayableAmount || 0),
+          payableAmountDisplay: `${r.CurrencyCode || 'CNY'} ${Number(r.PayableAmount || 0).toLocaleString()}`,
+          totalPaidAmount: totalPaidAmount,
+          remainingAmount: remainingAmount,
+          currencyCode: r.CurrencyCode || 'CNY',
+          paymentDueDate: r.PaymentDueDate,
+          importance: r.Importance || 'normal',
+          urgency: r.Urgency || 'normal',
+          status: r.Status || 'pending',
+          warningStatus: r.WarningStatus || 'normal',
+          // USD 换算
+          payableAmountUsd: Number(payableAmountUsd.toFixed(2)),
+          totalPaidAmountUsd: Number(totalPaidAmountUsd.toFixed(2)),
+          remainingAmountUsd: Number(remainingAmountUsd.toFixed(2))
+        };
+      } catch (error) {
+        console.error(`处理应付记录 ${r.Id} 时出错:`, error);
+        // 返回默认值，避免整个请求失败
+        return {
+          id: r.Id,
+          payableNumber: r.PayableNumber || '',
+          payableDescription: r.PayableDescription || '',
+          supplierName: r.SupplierName || '',
+          contractNumber: r.ContractNumber || '',
+          contractTitle: r.ContractTitle || '',
+          contractDisplay: `${r.ContractNumber || ''}-${r.ContractTitle || ''}`.replace(/^-/, ''),
+          payableAmount: Number(r.PayableAmount || 0),
+          payableAmountDisplay: `${r.CurrencyCode || 'CNY'} ${Number(r.PayableAmount || 0).toLocaleString()}`,
+          totalPaidAmount: 0,
+          remainingAmount: Number(r.PayableAmount || 0),
+          currencyCode: r.CurrencyCode || 'CNY',
+          paymentDueDate: r.PaymentDueDate,
+          importance: r.Importance || 'normal',
+          urgency: r.Urgency || 'normal',
+          status: r.Status || 'pending',
+          warningStatus: r.WarningStatus || 'normal',
+          payableAmountUsd: 0,
+          totalPaidAmountUsd: 0,
+          remainingAmountUsd: 0
+        };
+      }
+    }));
+
+    // 按状态分组统计
+    const urgentCount = payables.filter(p => p.warningStatus === 'urgent').length;
+    const overdueCount = payables.filter(p => p.warningStatus === 'overdue').length;
+    const urgentTotalUsd = payables.filter(p => p.warningStatus === 'urgent')
+      .reduce((sum, p) => sum + p.remainingAmountUsd, 0);
+    const overdueTotalUsd = payables.filter(p => p.warningStatus === 'overdue')
+      .reduce((sum, p) => sum + p.remainingAmountUsd, 0);
+
+    res.json({ 
+      success: true, 
+      data: { 
+        payables,
+        summary: {
+          urgent: { count: urgentCount, totalUsd: Number(urgentTotalUsd.toFixed(2)) },
+          overdue: { count: overdueCount, totalUsd: Number(overdueTotalUsd.toFixed(2)) }
+        }
+      } 
     });
-
-    const urgent = mapUsd(urgentRows);
-    const overdue = mapUsd(overdueRows);
-
-    res.json({ success: true, data: { urgent, overdue } });
   } catch (error) {
     console.error('获取应付汇总错误:', error);
     res.status(500).json({ success: false, message: '获取应付汇总失败' });

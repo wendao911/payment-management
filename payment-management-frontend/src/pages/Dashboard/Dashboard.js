@@ -5,6 +5,7 @@ import BankAccountsSummary from './components/BankAccountsSummary';
 import PayablesSummary from './components/PayablesSummary';
 import PaymentRecordsSummary from './components/PaymentRecordsSummary';
 import RecentPaymentsTable from './components/RecentPaymentsTable';
+import ResizeObserverErrorBoundary from '../../components/ResizeObserverErrorBoundary';
 import { useDashboard } from './hooks/useDashboard';
 
 const { Title } = Typography;
@@ -48,63 +49,67 @@ const Dashboard = () => {
       <Title level={1} className="text-2xl font-bold mb-6">系统概览</Title>
 
       {/* 付款预警统计 */}
-      <PaymentWarningSummary onViewDetails={(type) => {
-        // 跳转到付款管理页面并应用相应的过滤
-        window.location.href = `#/payments?filter=${type}`;
-      }} />
+      <ResizeObserverErrorBoundary>
+        <PaymentWarningSummary onViewDetails={(type) => {
+          // 跳转到付款管理页面并应用相应的过滤
+          window.location.href = `#/payments?filter=${type}`;
+        }} />
+      </ResizeObserverErrorBoundary>
 
       <Divider />
 
       {/* 银行账户汇总 */}
       <Row gutter={16} className="mb-6">
         <Col span={24}>
-          <BankAccountsSummary
-            loading={bankLoading}
-            bankSummary={bankSummary}
-            maxBankTotalUsd={maxBankTotalUsd}
-          />
+          <ResizeObserverErrorBoundary>
+            <BankAccountsSummary
+              loading={bankLoading}
+              bankSummary={bankSummary}
+              maxBankTotalUsd={maxBankTotalUsd}
+            />
+          </ResizeObserverErrorBoundary>
         </Col>
       </Row>
 
       {/* 应付汇总 */}
       <Row gutter={16} className="mb-6">
-        <Col span={12}>
-          <PayablesSummary
-            title="紧急应付"
-            loading={payablesLoading}
-            dataSource={payablesSummary.urgent}
-          />
-        </Col>
-        <Col span={12}>
-          <PayablesSummary
-            title="逾期应付"
-            loading={payablesLoading}
-            dataSource={payablesSummary.overdue}
-          />
+        <Col span={24}>
+          <ResizeObserverErrorBoundary>
+            <PayablesSummary
+              title="紧急和逾期应付汇总"
+              loading={payablesLoading}
+              dataSource={payablesSummary.payables}
+              summary={payablesSummary.summary}
+            />
+          </ResizeObserverErrorBoundary>
         </Col>
       </Row>
 
       {/* 付款记录汇总 */}
       <Row gutter={16} className="mb-6">
         <Col span={24}>
-          <PaymentRecordsSummary
-            loading={paymentsLoading}
-            granularity={granularity}
-            setGranularity={setGranularity}
-            dateRange={dateRange}
-            setDateRange={setDateRange}
-            paymentSummary={paymentSummary}
-          />
+          <ResizeObserverErrorBoundary>
+            <PaymentRecordsSummary
+              loading={paymentsLoading}
+              granularity={granularity}
+              setGranularity={setGranularity}
+              dateRange={dateRange}
+              setDateRange={setDateRange}
+              paymentSummary={paymentSummary}
+            />
+          </ResizeObserverErrorBoundary>
         </Col>
       </Row>
 
       {/* 最近付款记录 */}
       <Row gutter={16}>
         <Col span={24}>
-          <RecentPaymentsTable
-            loading={loading}
-            dataSource={recentPayments}
-          />
+          <ResizeObserverErrorBoundary>
+            <RecentPaymentsTable
+              loading={loading}
+              dataSource={recentPayments}
+            />
+          </ResizeObserverErrorBoundary>
         </Col>
       </Row>
     </div>
