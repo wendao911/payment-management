@@ -4,6 +4,15 @@ import dayjs from '../../../utils/dayjs';
 import { dashboardStyles } from '../styles';
 
 const RecentPaymentsTable = ({ loading, dataSource }) => {
+  // 确保数据源是有效的数组，并为每条记录添加唯一的key
+  const validDataSource = Array.isArray(dataSource) ? dataSource.map((item, index) => ({
+    ...item,
+    // 确保每条记录都有唯一的key
+    key: item.id || item.Id || item.paymentId || item.PaymentId || `payment-${index}`,
+    // 如果原始数据没有id字段，使用索引作为备用
+    id: item.id || item.Id || item.paymentId || item.PaymentId || `payment-${index}`
+  })) : [];
+
   const columns = [
     { 
       title: '付款编号', 
@@ -97,8 +106,8 @@ const RecentPaymentsTable = ({ loading, dataSource }) => {
       <Card title="最近付款记录" loading={loading} className="dashboard-card">
         <Table
           columns={columns}
-          dataSource={dataSource}
-          rowKey="id"
+          dataSource={validDataSource}
+          rowKey="key"
           pagination={false}
           size="small"
           className="dashboard-table"
