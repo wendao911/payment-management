@@ -12,6 +12,7 @@ import Contracts from './pages/Contracts';
 import Payments from './pages/Payments/index';
 import PaymentRecords from './pages/PaymentRecords';
 import Countries from './pages/Countries';
+import Currencies from './pages/Currencies';
 import Banks from './pages/Banks';
 import BankAccounts from './pages/BankAccounts';
 import ResizeObserverErrorBoundary from './components/ResizeObserverErrorBoundary';
@@ -65,6 +66,13 @@ function App() {
                   <ProtectedRoute>
                     <Layout>
                       <Countries />
+                    </Layout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/currencies" element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <Currencies />
                     </Layout>
                   </ProtectedRoute>
                 } />

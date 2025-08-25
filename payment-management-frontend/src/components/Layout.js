@@ -53,6 +53,11 @@ const Layout = ({ children }) => {
           label: '国家管理',
         },
         {
+          key: '/currencies',
+          icon: <GlobalOutlined />,
+          label: '币种管理',
+        },
+        {
           key: '/banks',
           icon: <BankOutlined />,
           label: '银行管理',
@@ -120,6 +125,7 @@ const Layout = ({ children }) => {
       // 根据路径生成面包屑
       const pathMap = {
         'countries': '国家管理',
+        'currencies': '币种管理',
         'banks': '银行管理',
         'suppliers': '供应商管理',
         'bank-accounts': '银行账户',
