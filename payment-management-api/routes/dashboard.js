@@ -263,31 +263,101 @@ router.get('/payment-records/summary', authenticateToken, async (req, res) => {
       SELECT 
         pm.Id AS PayableId,
         pm.PayableNumber,
-        pm.CurrencyCode,
-        cur.ExchangeRate,
-        COALESCE(SUM(CASE WHEN pr.PaymentDate BETWEEN ? AND ? THEN pr.PaymentAmount END), 0) AS SumInRange,
-        COALESCE(SUM(pr.PaymentAmount), 0) AS SumAllTime
+        pm.CurrencyCode AS PayableCurrencyCode,
+        cur.ExchangeRate AS PayableExchangeRate
       FROM PayableManagement pm
-      LEFT JOIN PaymentRecords pr ON pr.PayableManagementId = pm.Id
       LEFT JOIN Currencies cur ON pm.CurrencyCode = cur.Code
-      GROUP BY pm.Id, pm.PayableNumber, pm.CurrencyCode, cur.ExchangeRate
-      ORDER BY SumInRange DESC
+      ORDER BY pm.Id
+    `);
+
+    // 为每个应付查询其付款记录，并按币种分别计算
+    const groupedByPayable = await Promise.all(byPayable.map(async (payable) => {
+      try {
+        // 查询该应付的所有付款记录，按币种分组
+        const paymentRecordsByCurrency = await query(`
+          SELECT 
+            pr.CurrencyCode,
+            cur.ExchangeRate,
+            COALESCE(SUM(CASE WHEN pr.PaymentDate BETWEEN ? AND ? THEN pr.PaymentAmount END), 0) AS SumInRange,
+            COALESCE(SUM(pr.PaymentAmount), 0) AS SumAllTime
+          FROM PaymentRecords pr
+          LEFT JOIN Currencies cur ON pr.CurrencyCode = cur.Code
+          WHERE pr.PayableManagementId = ?
+          GROUP BY pr.CurrencyCode, cur.ExchangeRate
+        `, [start, end, payable.PayableId]);
+
+        // 计算各币种的USD金额
+        let sumInRangeUsd = 0;
+        let sumAllTimeUsd = 0;
+
+        paymentRecordsByCurrency.forEach(record => {
+          const rate = Number(record.ExchangeRate || 1);
+          const inRange = Number(record.SumInRange || 0);
+          const allTime = Number(record.SumAllTime || 0);
+          
+          sumInRangeUsd += inRange / rate;
+          sumAllTimeUsd += allTime / rate;
+        });
+
+        return {
+          payableId: payable.PayableId,
+          payableNumber: payable.PayableNumber,
+          payableCurrencyCode: payable.PayableCurrencyCode,
+          sumInRangeUsd: Number(sumInRangeUsd.toFixed(2)),
+          sumAllTimeUsd: Number(sumAllTimeUsd.toFixed(2)),
+          // 添加原始币种金额，用于调试
+          paymentRecordsByCurrency: paymentRecordsByCurrency.map(record => ({
+            currencyCode: record.CurrencyCode,
+            exchangeRate: record.ExchangeRate,
+            sumInRange: Number(record.SumInRange || 0),
+            sumAllTime: Number(record.SumAllTime || 0)
+          }))
+        };
+      } catch (error) {
+        console.error(`处理应付 ${payable.PayableId} 的付款记录时出错:`, error);
+        return {
+          payableId: payable.PayableId,
+          payableNumber: payable.PayableNumber,
+          payableCurrencyCode: payable.PayableCurrencyCode,
+          sumInRangeUsd: 0,
+          sumAllTimeUsd: 0,
+          paymentRecordsByCurrency: []
+        };
+      }
+    }));
+
+    // 总计（时间范围内）- 使用已计算的 paymentItems
+    const totalUsd = paymentItems.reduce((acc, i) => acc + i.paymentAmountUsd, 0);
+
+    // 验证：重新计算总计，确保汇率换算正确
+    const totalUsdVerification = await query(`
+      SELECT 
+        pr.CurrencyCode,
+        cur.ExchangeRate,
+        SUM(pr.PaymentAmount) AS totalAmount
+      FROM PaymentRecords pr
+      LEFT JOIN Currencies cur ON pr.CurrencyCode = cur.Code
+      WHERE pr.PaymentDate BETWEEN ? AND ?
+      GROUP BY pr.CurrencyCode, cur.ExchangeRate
     `, [start, end]);
 
-    const groupedByPayable = byPayable.map(r => {
-      const rate = Number(r.ExchangeRate || 1);
-      const toUsd = (amt) => Number((Number(amt || 0) / (rate || 1)).toFixed(2));
-      return {
-        payableId: r.PayableId,
-        payableNumber: r.PayableNumber,
-        sumInRangeUsd: toUsd(r.SumInRange),
-        sumAllTimeUsd: toUsd(r.SumAllTime),
-        currencyCode: r.CurrencyCode
-      };
+    let totalUsdRecalculated = 0;
+    totalUsdVerification.forEach(row => {
+      const amount = Number(row.totalAmount || 0);
+      const rate = Number(row.ExchangeRate || 1);
+      totalUsdRecalculated += amount / rate;
     });
 
-    // 总计（时间范围内）
-    const totalUsd = paymentItems.reduce((acc, i) => acc + i.paymentAmountUsd, 0);
+    console.log('付款记录汇总汇率换算验证:', {
+      originalTotal: totalUsd,
+      recalculatedTotal: Number(totalUsdRecalculated.toFixed(2)),
+      currencyBreakdown: totalUsdVerification.map(row => ({
+        currency: row.CurrencyCode,
+        amount: Number(row.totalAmount || 0),
+        rate: Number(row.ExchangeRate || 1),
+        amountUsd: Number((Number(row.totalAmount || 0) / Number(row.ExchangeRate || 1)).toFixed(2))
+      }))
+    });
 
     // 可选的时间序列（按日/月/年）
     let timeseries = [];
@@ -296,14 +366,34 @@ router.get('/payment-records/summary', authenticateToken, async (req, res) => {
       const rows = await query(`
         SELECT 
           DATE_FORMAT(pr.PaymentDate, '${granularity === 'year' ? '%Y' : granularity === 'month' ? '%Y-%m' : '%Y-%m-%d'}') AS period,
-          SUM(pr.PaymentAmount / NULLIF(cur.ExchangeRate, 0)) AS totalUsd
+          pr.CurrencyCode,
+          cur.ExchangeRate,
+          SUM(pr.PaymentAmount) AS totalAmount
         FROM PaymentRecords pr
         LEFT JOIN Currencies cur ON pr.CurrencyCode = cur.Code
         WHERE pr.PaymentDate BETWEEN ? AND ?
-        GROUP BY DATE_FORMAT(pr.PaymentDate, '${granularity === 'year' ? '%Y' : granularity === 'month' ? '%Y-%m' : '%Y-%m-%d'}')
-        ORDER BY period
+        GROUP BY DATE_FORMAT(pr.PaymentDate, '${granularity === 'year' ? '%Y' : granularity === 'month' ? '%Y-%m' : '%Y-%m-%d'}'), pr.CurrencyCode, cur.ExchangeRate
+        ORDER BY period, pr.CurrencyCode
       `, [start, end]);
-      timeseries = rows.map(r => ({ period: r.period, totalUsd: Number(Number(r.totalUsd || 0).toFixed(2)) }));
+      
+      // 按时间段聚合，正确处理多币种
+      const periodMap = new Map();
+      rows.forEach(row => {
+        const period = row.period;
+        const amount = Number(row.totalAmount || 0);
+        const rate = Number(row.ExchangeRate || 1);
+        const amountUsd = amount / rate;
+        
+        if (!periodMap.has(period)) {
+          periodMap.set(period, { period, totalUsd: 0 });
+        }
+        periodMap.get(period).totalUsd += amountUsd;
+      });
+      
+      timeseries = Array.from(periodMap.values()).map(item => ({
+        period: item.period,
+        totalUsd: Number(item.totalUsd.toFixed(2))
+      }));
     }
 
     res.json({
