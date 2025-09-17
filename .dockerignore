@@ -1,0 +1,50 @@
+# Git
+.git
+.gitignore
+README.md
+
+# Docker 相关
+docker-compose.yml
+Dockerfile
+.dockerignore
+
+# 文档
+*.md
+docs
+
+# 临时文件
+tmp
+temp
+*.tmp
+
+# 日志文件
+logs
+*.log
+
+# 操作系统文件
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE 文件
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# 脚本文件
+*.sh
+*.bat
+*.ps1
+
+# 压缩文件
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z

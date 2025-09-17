@@ -1,0 +1,85 @@
+# Docker Compose 配置 - 移除 version 字段以避免警告
+
+services:
+  # MySQL 数据库服务
+  mysql:
+    image: mysql:8.0
+    container_name: payment_management_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: payment123
+      MYSQL_DATABASE: paymentmanagement
+      MYSQL_USER: payment_user
+      MYSQL_PASSWORD: payment123
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./payment-management-api/paymentmanagement.sql:/docker-entrypoint-initdb.d/01-init.sql
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --lower_case_table_names=1
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-ppayment123"]
+      timeout: 20s
+      retries: 10
+      interval: 10s
+      start_period: 30s
+    networks:
+      - payment_network
+
+  # 后端 API 服务
+  backend:
+    build:
+      context: ./payment-management-api
+      dockerfile: Dockerfile
+    container_name: payment_management_backend
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=payment_user
+      - DB_PASSWORD=payment123
+      - DB_NAME=paymentmanagement
+      - PORT=5000
+      - HOST=0.0.0.0
+      - JWT_SECRET=payment_management_jwt_secret_key_2024
+      - JWT_EXPIRES_IN=24h
+      - MAX_FILE_SIZE=10485760
+      - UPLOAD_PATH=uploads
+      - LOCAL_HOSTS=localhost,127.0.0.1,frontend,host.docker.internal
+      - ALLOWED_ORIGINS=http://localhost:9000,http://127.0.0.1:9000,http://host.docker.internal:9000
+    ports:
+      - "9001:5000"
+    volumes:
+      - ./payment-management-api/uploads:/app/uploads
+      - ./payment-management-api/logs:/app/logs
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - payment_network
+
+  # 前端服务
+  frontend:
+    build:
+      context: ./payment-management-frontend
+      dockerfile: Dockerfile
+    container_name: payment_management_frontend
+    restart: unless-stopped
+    environment:
+      - REACT_APP_API_URL=http://localhost:9001/api
+      - REACT_APP_BASE_URL=http://localhost:9000
+    ports:
+      - "9000:3000"
+    depends_on:
+      - backend
+    networks:
+      - payment_network
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  payment_network:
+    driver: bridge
