@@ -1,0 +1,65 @@
+name: build-mac
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    permissions:
+      contents: write  # 允许创建Release/上传资产
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        working-directory: payment-management-frontend
+        run: npm ci
+
+      - name: Build React
+        working-directory: payment-management-frontend
+        env:
+          # 优先使用仓库变量（Settings → Secrets and variables → Actions → Variables）
+          REACT_APP_API_URL: ${{ vars.REACT_APP_API_URL }}
+        run: npm run build
+
+      - name: Build mac app (unsigned)
+        working-directory: payment-management-frontend
+        env:
+          CSC_IDENTITY_AUTO: false
+          REACT_APP_API_URL: ${{ vars.REACT_APP_API_URL }}
+        run: npx electron-builder --mac
+
+      - name: Read app version
+        id: app_version
+        working-directory: payment-management-frontend
+        run: |
+          echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release and upload installers
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.app_version.outputs.version }}-${{ github.run_number }}
+          name: Payment Management macOS v${{ steps.app_version.outputs.version }} (build ${{ github.run_number }})
+          draft: false
+          prerelease: false
+          files: |
+            payment-management-frontend/dist/*.dmg
+            payment-management-frontend/dist/*-mac.zip
+            payment-management-frontend/dist/mac/**
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-dist
+          path: |
+            payment-management-frontend/dist/**
+            !payment-management-frontend/dist/*.blockmap
+
+
